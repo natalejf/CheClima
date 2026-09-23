@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wind, Droplets, MapPin, Navigation, Thermometer, 
-  CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert
+  CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert,
+  Gauge, AlertTriangle, Truck, Snowflake, Info
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, 
   getWindDirectionName, getWeatherDescription 
 } from './utils/weather';
-import { evaluateConditions } from './utils/rules';
+import { 
+  evaluateConditions, calculateDeltaT, 
+  evaluateThermalInversion, evaluateSoilTrafficability, 
+  evaluateFrostRisk 
+} from './utils/rules';
 
 function App() {
   const [selectedCity, setSelectedCity] = useState(POPULAR_CITIES[0]); // Default Pergamino
@@ -75,6 +80,12 @@ function App() {
   const hourly = weatherData?.hourly;
   const daily = weatherData?.daily;
 
+  // Compute operational insights
+  const deltaT = current ? calculateDeltaT(current.temperature_2m, current.relative_humidity_2m) : null;
+  const thermalInversion = current ? evaluateThermalInversion(current.wind_speed_10m, current.cloud_cover) : null;
+  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m) : null;
+  const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
+
   // Format dates for daily forecast
   const getDayName = (dateStr, index) => {
     if (index === 0) return 'Hoy';
@@ -94,12 +105,12 @@ function App() {
       {/* Header & City Search Bar */}
       <header className="app-header glass-panel mb-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="brand flex items-center gap-3">
-            <div className="brand-icon">
+          <div className="brand flex items-center gap-3 w-full md:w-auto">
+            <div className="brand-icon shrink-0">
               <Sprout size={32} color="#3fb950" />
             </div>
             <div>
-              <h1 className="brand-title flex items-center gap-2">
+              <h1 className="brand-title flex items-center gap-2 text-xl md:text-2xl">
                 Fumiga-arg <span className="badge-beta">AGRO</span>
               </h1>
               <p className="text-xs text-muted">Monitor climático y operativo para el campo</p>
@@ -158,9 +169,9 @@ function App() {
         </div>
 
         {/* Selected City Info & Quick Cities */}
-        <div className="mt-4 pt-4 border-t border-glass flex flex-wrap justify-between items-center gap-3">
+        <div className="mt-4 pt-4 border-t border-glass flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex items-center gap-2 text-white font-semibold">
-            <MapPin size={20} color="var(--primary-hover)" />
+            <MapPin size={20} color="var(--primary-hover)" className="shrink-0" />
             <span className="text-lg">{selectedCity.name}</span>
             <span className="text-sm text-muted font-normal">
               {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
@@ -168,7 +179,7 @@ function App() {
           </div>
 
           {/* Popular City Quick Buttons */}
-          <div className="popular-cities flex flex-wrap items-center gap-2">
+          <div className="popular-cities flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
             <span className="text-xs text-muted font-medium mr-1">Populares:</span>
             {POPULAR_CITIES.map((c, i) => (
               <button
@@ -195,7 +206,7 @@ function App() {
             {/* Current Weather Card */}
             <div className="glass-panel weather-card">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="flex items-center gap-2 text-lg">
+                <h2 className="flex items-center gap-2 text-base md:text-lg">
                   <Thermometer size={20} color="var(--primary-hover)" /> Clima Actual
                 </h2>
                 <span className="weather-badge">
@@ -213,20 +224,21 @@ function App() {
                   {/* Wind Metric */}
                   <div className="metric-box highlighted">
                     <div className="flex items-center gap-2 mb-1">
-                      <Wind size={20} className="text-primary" />
+                      <Wind size={18} className="text-primary" />
                       <span className="text-xs text-muted font-bold uppercase tracking-wider">Viento</span>
                     </div>
                     <div className="text-xl font-bold text-white">
                       {current.wind_speed_10m} <span className="text-sm font-normal text-muted">km/h</span>
                     </div>
                     <div className="text-xs text-muted mt-1 flex items-center gap-1">
-                      <span>Ráfagas hasta:</span>
+                      <span>Ráfagas:</span>
                       <strong className="text-white">{current.wind_gusts_10m} km/h</strong>
                     </div>
-                    <div className="wind-direction-pill mt-2 flex items-center gap-1.5">
+                    <div className="wind-direction-pill mt-2 flex items-center gap-1-5">
                       <Navigation 
                         size={14} 
                         style={{ transform: `rotate(${current.wind_direction_10m}deg)` }} 
+                        className="shrink-0"
                       />
                       <span>Viento del <strong>{getWindDirectionName(current.wind_direction_10m)}</strong></span>
                       <span className="text-xs text-muted">({current.wind_direction_10m}°)</span>
@@ -259,8 +271,8 @@ function App() {
             {/* Agricultural Task Monitor */}
             <div className="glass-panel tasks-card">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="flex items-center gap-2 text-lg">
-                  <ShieldAlert size={20} color="var(--primary-hover)" /> Semáforo Agrícola
+                <h2 className="flex items-center gap-2 text-base md:text-lg">
+                  <ShieldAlert size={20} color="var(--primary-hover)" /> Semáforo de Tareas
                 </h2>
                 {/* Crop Selector */}
                 <div className="crop-selector flex items-center gap-1">
@@ -302,9 +314,89 @@ function App() {
             </div>
           </div>
 
+          {/* NEW SECTION: Advanced Agronomic Insights / Operational Monitors */}
+          <div className="glass-panel mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="flex items-center gap-2 text-base md:text-lg">
+                <Gauge size={20} color="var(--primary-hover)" /> Monitores e Insights Agronómicos
+              </h2>
+              <span className="text-xs text-muted hidden sm:inline">Indicadores para decisión en lote</span>
+            </div>
+
+            <div className="insights-grid">
+              {/* Delta T Monitor Card */}
+              {deltaT && (
+                <div className={`insight-card insight-border-${deltaT.status}`}>
+                  <div className="insight-header">
+                    <div className="flex items-center gap-2">
+                      <Gauge size={18} className="text-primary" />
+                      <span className="font-bold text-white text-sm">Delta T (Evaporación)</span>
+                    </div>
+                    <span className={`status-badge badge-${deltaT.status}`}>
+                      {deltaT.deltaT} °C
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-white mt-1">Zona: {deltaT.zone}</div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">{deltaT.advice}</p>
+                </div>
+              )}
+
+              {/* Thermal Inversion Risk Card */}
+              {thermalInversion && (
+                <div className={`insight-card insight-border-${thermalInversion.status}`}>
+                  <div className="insight-header">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={18} className="text-yellow-400" />
+                      <span className="font-bold text-white text-sm">Inversión Térmica</span>
+                    </div>
+                    <span className={`status-badge badge-${thermalInversion.status}`}>
+                      {thermalInversion.status === 'green' ? 'BAJO RIESGO' : thermalInversion.status === 'yellow' ? 'MODERADO' : 'ALTO RIESGO'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-white mt-1">{thermalInversion.title}</div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">{thermalInversion.advice}</p>
+                </div>
+              )}
+
+              {/* Soil Trafficability Card */}
+              {soilTraffic && (
+                <div className={`insight-card insight-border-${soilTraffic.status}`}>
+                  <div className="insight-header">
+                    <div className="flex items-center gap-2">
+                      <Truck size={18} className="text-blue" />
+                      <span className="font-bold text-white text-sm">Piso en Lote</span>
+                    </div>
+                    <span className={`status-badge badge-${soilTraffic.status}`}>
+                      {soilTraffic.status === 'green' ? 'TRANSITABLE' : soilTraffic.status === 'yellow' ? 'PRECAUCIÓN' : 'BARRO'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-white mt-1">{soilTraffic.title}</div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">{soilTraffic.advice}</p>
+                </div>
+              )}
+
+              {/* Frost Risk Card */}
+              {frostRisk && (
+                <div className={`insight-card insight-border-${frostRisk.status}`}>
+                  <div className="insight-header">
+                    <div className="flex items-center gap-2">
+                      <Snowflake size={18} className="text-blue" />
+                      <span className="font-bold text-white text-sm">Riesgo de Heladas</span>
+                    </div>
+                    <span className={`status-badge badge-${frostRisk.status}`}>
+                      {frostRisk.status === 'green' ? 'SIN HELADAS' : frostRisk.status === 'yellow' ? 'ALERTA ESCARCHA' : 'HELADA SEVERA'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-semibold text-white mt-1">{frostRisk.title}</div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">{frostRisk.advice}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Extended Daily Forecast (7 Días) */}
           <div className="glass-panel mb-6">
-            <h2 className="flex items-center gap-2 text-lg mb-4">
+            <h2 className="flex items-center gap-2 text-base md:text-lg mb-4">
               <Calendar size={20} color="var(--primary-hover)" /> Pronóstico Extendido por Días (7 Días)
             </h2>
             <div className="daily-grid">
@@ -358,7 +450,7 @@ function App() {
           {/* Extended Hourly Forecast (Hora por Hora) */}
           <div className="glass-panel mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="flex items-center gap-2 text-lg">
+              <h2 className="flex items-center gap-2 text-base md:text-lg">
                 <Clock size={20} color="var(--primary-hover)" /> Pronóstico Detallado Hora por Hora (48 Horas)
               </h2>
               <span className="text-xs text-muted">Desliza para ver más horas →</span>
@@ -411,8 +503,8 @@ function App() {
 
       {/* Windy Interactive Radar Map */}
       <div className="glass-panel">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+          <h2 className="text-base md:text-lg flex items-center gap-2">
             <Wind size={20} color="var(--primary-hover)" /> Radar Interactivo de Viento y Lluvia (Windy)
           </h2>
           <span className="text-xs text-muted">Ubicación: {selectedCity.name}</span>

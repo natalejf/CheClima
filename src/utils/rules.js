@@ -69,26 +69,26 @@ export const evaluateConditions = (task, current) => {
   const { deltaT } = calculateDeltaT(temp, hum);
 
   if (task === 'pulverizar' || task === 'fumigar') {
-    if (rain > 0) return { status: 'red', message: `No operativo: Lluvia activa (${rain} mm) lava el producto.` };
-    if (wind > SPRAY_MAX_WIND || gusts > SPRAY_MAX_GUST) return { status: 'red', message: `No operativo: Viento fuerte (${wind} km/h, Ráfagas ${gusts} km/h) causa deriva.` };
-    if (wind < SPRAY_MIN_WIND) return { status: 'yellow', message: `Operativo con precaución: Viento calmo (${wind} km/h), riesgo de Inversión Térmica.` };
-    if (temp > SPRAY_MAX_TEMP) return { status: 'red', message: `No operativo: Temperatura extrema (${temp}°C), altísima evaporación.` };
-    if (hum < SPRAY_MIN_HUM) return { status: 'yellow', message: `Operativo con precaución: Baja humedad (${hum}%), Delta T: ${deltaT}°C. Usar antievaporante.` };
-    if (deltaT > 8) return { status: 'yellow', message: `Operativo con precaución: Delta T alto (${deltaT}°C), riesgo de pérdidas por evaporación.` };
-    return { status: 'green', message: `100% Operativo: Condiciones atmosféricas ideales para pulverización.` };
+    if (rain > 0) return { status: 'red', message: `No apto: Lluvia activa (${rain} mm) lava el producto.` };
+    if (wind > SPRAY_MAX_WIND || gusts > SPRAY_MAX_GUST) return { status: 'red', message: `No apto: Viento fuerte (${wind} km/h, Ráfagas ${gusts} km/h) causa deriva.` };
+    if (wind < SPRAY_MIN_WIND) return { status: 'yellow', message: `Apto con precaución: Viento calmo (${wind} km/h), riesgo de Inversión Térmica.` };
+    if (temp > SPRAY_MAX_TEMP) return { status: 'red', message: `No apto: Temperatura extrema (${temp}°C), altísima evaporación.` };
+    if (hum < SPRAY_MIN_HUM) return { status: 'yellow', message: `Apto con precaución: Baja humedad (${hum}%), Delta T: ${deltaT}°C. Usar antievaporante.` };
+    if (deltaT > 8) return { status: 'yellow', message: `Apto con precaución: Delta T alto (${deltaT}°C), riesgo de pérdidas por evaporación.` };
+    return { status: 'green', message: `100% Apto: Condiciones atmosféricas ideales para fumigación/pulverización.` };
   }
 
   if (task === 'sembrar') {
-    if (rain > 5) return { status: 'red', message: `No operativo: Lluvia acumulada alto (${rain} mm), riesgo de encharcamiento y suelo pesado.` };
-    if (temp < 10) return { status: 'yellow', message: `Operativo con precaución: Temperatura fresca (${temp}°C), germinación lenta.` };
-    return { status: 'green', message: `100% Operativo: Condiciones favorables de suelo y temperatura para siembra.` };
+    if (rain > 5) return { status: 'red', message: `No apto: Lluvia acumulada alto (${rain} mm), riesgo de encharcamiento y suelo pesado.` };
+    if (temp < 10) return { status: 'yellow', message: `Apto con precaución: Temperatura fresca (${temp}°C), germinación lenta.` };
+    return { status: 'green', message: `100% Apto: Condiciones favorables de suelo y temperatura para siembra.` };
   }
 
   if (task === 'cosechar') {
-    if (rain > 0) return { status: 'red', message: `No operativo: Lluvia activa (${rain} mm). Imposible trillar.` };
-    if (hum > 75) return { status: 'red', message: `No operativo: Humedad de ambiente elevada (${hum}%), riesgo de entrega de grano húmedo.` };
-    if (hum > 65) return { status: 'yellow', message: `Operativo con precaución: Humedad límite (${hum}%), vigilar gasto de secadora.` };
-    return { status: 'green', message: `100% Operativo: Humedad de aire óptima para cosecha limpia.` };
+    if (rain > 0) return { status: 'red', message: `No apto: Lluvia activa (${rain} mm). Imposible trillar.` };
+    if (hum > 75) return { status: 'red', message: `No apto: Humedad de ambiente elevada (${hum}%), riesgo de entrega de grano húmedo.` };
+    if (hum > 65) return { status: 'yellow', message: `Apto con precaución: Humedad límite (${hum}%), vigilar gasto de secadora.` };
+    return { status: 'green', message: `100% Apto: Humedad de aire óptima para cosecha limpia.` };
   }
 
   return { status: 'yellow', message: 'Sin datos para esta tarea.' };
@@ -231,6 +231,48 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       windowsStrList.push(`${startH}:00 a ${endH}:00 hs`);
     }
 
+    // Sow windows (08:00 to 19:00, rain === 0, temp >= 10)
+    const sowWindowsList = [];
+    let currentSowWin = [];
+    workDayHours.filter(item => item.hourNum >= 8 && item.hourNum <= 19).forEach(item => {
+      if (item.rain === 0 && item.temp >= 10) {
+        currentSowWin.push(item);
+      } else {
+        if (currentSowWin.length >= 2) {
+          const startH = currentSowWin[0].hourNum.toString().padStart(2, '0');
+          const endH = (currentSowWin[currentSowWin.length - 1].hourNum + 1).toString().padStart(2, '0');
+          sowWindowsList.push(`${startH}:00 a ${endH}:00 hs`);
+        }
+        currentSowWin = [];
+      }
+    });
+    if (currentSowWin.length >= 2) {
+      const startH = currentSowWin[0].hourNum.toString().padStart(2, '0');
+      const endH = (currentSowWin[currentSowWin.length - 1].hourNum + 1).toString().padStart(2, '0');
+      sowWindowsList.push(`${startH}:00 a ${endH}:00 hs`);
+    }
+
+    // Harvest windows (10:00 to 19:00, rain === 0, hum <= 65)
+    const harvestWindowsList = [];
+    let currentHarvestWin = [];
+    workDayHours.filter(item => item.hourNum >= 10 && item.hourNum <= 19).forEach(item => {
+      if (item.rain === 0 && item.hum <= 65) {
+        currentHarvestWin.push(item);
+      } else {
+        if (currentHarvestWin.length >= 2) {
+          const startH = currentHarvestWin[0].hourNum.toString().padStart(2, '0');
+          const endH = (currentHarvestWin[currentHarvestWin.length - 1].hourNum + 1).toString().padStart(2, '0');
+          harvestWindowsList.push(`${startH}:00 a ${endH}:00 hs`);
+        }
+        currentHarvestWin = [];
+      }
+    });
+    if (currentHarvestWin.length >= 2) {
+      const startH = currentHarvestWin[0].hourNum.toString().padStart(2, '0');
+      const endH = (currentHarvestWin[currentHarvestWin.length - 1].hourNum + 1).toString().padStart(2, '0');
+      harvestWindowsList.push(`${startH}:00 a ${endH}:00 hs`);
+    }
+
     // Wind shifts timeline for key day periods (08:00, 14:00, 20:00)
     const morningSlot = dayHours.find(h => h.hourNum === 8) || dayHours[8];
     const afternoonSlot = dayHours.find(h => h.hourNum === 14) || dayHours[14];
@@ -257,10 +299,45 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       }
     ];
 
+    // Rain schedule calculation
+    const rainSlots = dayHours.filter(h => h.rain > 0);
+    const rainIntervals = [];
+    let rStart = null;
+    let rPrev = null;
+    rainSlots.forEach((slot) => {
+      const h = slot.hourNum;
+      if (rStart === null) {
+        rStart = h;
+        rPrev = h;
+      } else if (h === rPrev + 1) {
+        rPrev = h;
+      } else {
+        const sStr = rStart.toString().padStart(2, '0');
+        const eStr = (rPrev + 1).toString().padStart(2, '0');
+        if (rStart === rPrev) {
+          rainIntervals.push(`${sStr}:00 hs`);
+        } else {
+          rainIntervals.push(`${sStr}:00 a ${eStr}:00 hs`);
+        }
+        rStart = h;
+        rPrev = h;
+      }
+    });
+    if (rStart !== null) {
+      const sStr = rStart.toString().padStart(2, '0');
+      const eStr = (rPrev + 1).toString().padStart(2, '0');
+      if (rStart === rPrev) {
+        rainIntervals.push(`${sStr}:00 hs`);
+      } else {
+        rainIntervals.push(`${sStr}:00 a ${eStr}:00 hs`);
+      }
+    }
+    const rainSchedule = rainIntervals.length > 0 ? rainIntervals.join(' | ') : null;
+
     // Build non-operational reasons for spraying
     const nonOpReasons = [];
     if (daily.precipitation_sum[d] > 0) {
-      nonOpReasons.push(`Lluvia acumulada (${daily.precipitation_sum[d]} mm)`);
+      nonOpReasons.push(`Lluvia (${daily.precipitation_sum[d]} mm${rainSchedule ? ` entre ${rainSchedule}` : ''})`);
     }
     if (daily.wind_speed_10m_max[d] > SPRAY_MAX_WIND) {
       nonOpReasons.push(`Viento excesivo (hasta ${daily.wind_speed_10m_max[d]} km/h, Ráfagas ${daily.wind_gusts_10m_max[d]} km/h)`);
@@ -283,8 +360,14 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     }
 
     // Evaluate Sembrar & Cosechar for this day
-    const sowEval = evaluateDailySow(daily.precipitation_sum[d], daily.temperature_2m_min[d]);
-    const harvestEval = evaluateDailyHarvest(daily.precipitation_sum[d], maxHumOfDay);
+    const sowEval = {
+      ...evaluateDailySow(daily.precipitation_sum[d], daily.temperature_2m_min[d]),
+      windows: sowWindowsList
+    };
+    const harvestEval = {
+      ...evaluateDailyHarvest(daily.precipitation_sum[d], maxHumOfDay),
+      windows: harvestWindowsList
+    };
 
     daysAnalysis.push({
       dayIndex: d,
@@ -305,6 +388,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       maxWind: daily.wind_speed_10m_max[d],
       maxGust: daily.wind_gusts_10m_max[d],
       rainSum: daily.precipitation_sum[d],
+      rainSchedule,
       maxTemp: daily.temperature_2m_max[d],
       minTemp: daily.temperature_2m_min[d],
       hours: dayHours

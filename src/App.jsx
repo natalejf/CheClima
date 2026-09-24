@@ -28,6 +28,7 @@ function App() {
   
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [plannerFilter, setPlannerFilter] = useState('todos');
 
   const searchContainerRef = useRef(null);
 
@@ -103,7 +104,7 @@ function App() {
   const maxWeeklyGust = daily?.wind_gusts_10m_max ? Math.max(...daily.wind_gusts_10m_max) : 0;
 
   // Compute immediate spray status
-  const currentSprayEval = current ? evaluateConditions('pulverizar', current) : null;
+  const currentSprayEval = current ? evaluateConditions('fumigar', current) : null;
 
   // Formatted current date string
   const getFormattedTodayDate = () => {
@@ -123,6 +124,36 @@ function App() {
     const date = new Date(dateStr + 'T00:00:00');
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     return days[date.getDay()];
+  };
+
+  const getBestWeeklyTimesForTask = (weeklyAnalysis, filter) => {
+    if (!weeklyAnalysis?.days) return [];
+    
+    return weeklyAnalysis.days.map((dayInfo, idx) => {
+      const dayName = getDayName(dayInfo.dateStr, idx);
+      const isFumig = filter === 'fumigar' || filter === 'pulverizar';
+      const isSow = filter === 'sembrar';
+      const isHarvest = filter === 'cosechar';
+
+      if (isFumig) {
+        if (dayInfo.windows?.length > 0) {
+          return { dayName, windows: dayInfo.windows.join(' | '), status: dayInfo.overallStatus };
+        }
+      } else if (isSow) {
+        if (dayInfo.sowEval?.windows?.length > 0 && dayInfo.sowEval.status !== 'red') {
+          return { dayName, windows: dayInfo.sowEval.windows.join(' | '), status: dayInfo.sowEval.status };
+        } else if (dayInfo.sowEval?.status !== 'red') {
+          return { dayName, windows: 'Horarios diurnos (Temp > 10°C)', status: dayInfo.sowEval.status };
+        }
+      } else if (isHarvest) {
+        if (dayInfo.harvestEval?.windows?.length > 0 && dayInfo.harvestEval.status !== 'red') {
+          return { dayName, windows: dayInfo.harvestEval.windows.join(' | '), status: dayInfo.harvestEval.status };
+        } else if (dayInfo.harvestEval?.status !== 'red') {
+          return { dayName, windows: '12:00 a 18:00 hs (Menor humedad)', status: dayInfo.harvestEval.status };
+        }
+      }
+      return null;
+    }).filter(Boolean);
   };
 
   const formatDateShort = (dateStr) => {
@@ -271,7 +302,7 @@ function App() {
       {loading ? (
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
           <div className="loader" style={{ marginBottom: '1rem' }}></div>
-          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.85rem' }}>Calculando ventanas operativas...</p>
+          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.85rem' }}>Calculando ventanas aptas...</p>
           <p style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.72rem', marginTop: '0.25rem' }}>Conectando con modelos meteorológicos para {selectedCity.name}</p>
         </div>
       ) : current ? (
@@ -288,7 +319,7 @@ function App() {
                     <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
                   </div>
                   <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
-                    {selectedCity.name}: ¿Conviene operar hoy?
+                    {selectedCity.name}: ¿Conviene realizar labores hoy?
                   </h2>
                 </div>
 
@@ -300,7 +331,7 @@ function App() {
                   <div>
                     <div style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.8 }}>Estado Actual</div>
                     <div style={{ fontSize: '0.8rem', fontWeight: 900 }}>
-                      {currentSprayEval?.status === 'green' ? '🟢 OPERATIVO' : currentSprayEval?.status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO OPERATIVO'}
+                      {currentSprayEval?.status === 'green' ? '🟢 APTO' : currentSprayEval?.status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO'}
                     </div>
                   </div>
                 </div>
@@ -313,12 +344,12 @@ function App() {
               <div className="panorama-box green-highlight">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
                   <Play size={13} style={{ color: 'var(--green)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Operativa</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Apta</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
                   {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima'}
                 </div>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>Horario apto para pulverizar</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>Horario apto para fumigar/pulverizar</span>
               </div>
 
               {/* Diagnóstico */}
@@ -370,7 +401,7 @@ function App() {
                       background: 'var(--yellow-bg)', padding: '0.15rem 0.55rem', borderRadius: '99px',
                       border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
                     }}>
-                      🏆 Mejor día para operar
+                      🏆 Mejor día para labores
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
@@ -459,19 +490,19 @@ function App() {
               </div>
 
               <div className="tasks-grid">
-                {['pulverizar', 'sembrar', 'cosechar'].map((task) => {
+                {['fumigar', 'pulverizar', 'sembrar', 'cosechar'].map((task) => {
                   const rules = evaluateConditions(task, current);
                   return (
                     <div key={task} className={`state-card state-border-${rules.status}`}>
                       <div className="state-header">
                         <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', textTransform: 'capitalize' }}>
-                          {task === 'pulverizar' && <Wind size={15} style={{ color: 'var(--green)' }} />}
+                          {(task === 'fumigar' || task === 'pulverizar') && <Wind size={15} style={{ color: 'var(--green)' }} />}
                           {task === 'sembrar' && <Sprout size={15} style={{ color: 'var(--accent-secondary)' }} />}
                           {task === 'cosechar' && <Calendar size={15} style={{ color: 'var(--yellow)' }} />}
-                          {task === 'pulverizar' ? 'Pulverizar / Fumigar' : task}
+                          {task}
                         </span>
                         <span className={`status-badge badge-${rules.status}`}>
-                          {rules.status === 'green' ? 'OPERATIVO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO OPERATIVO'}
+                          {rules.status === 'green' ? 'APTO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
                         </span>
                       </div>
                       <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.4rem', lineHeight: 1.5 }}>{rules.message}</p>
@@ -564,20 +595,100 @@ function App() {
 
           {/* ═══ PLANIFICADOR SEMANAL ═══ */}
           <div className="glass-panel mb-6">
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <Calendar size={18} style={{ color: 'var(--green)' }} /> Planificador Semanal
-                </h2>
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Evaluación diaria de Pulverización, Siembra y Cosecha</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                <div>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                    <Calendar size={18} style={{ color: 'var(--green)' }} /> Planificador Semanal
+                  </h2>
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    Seleccioná una labor para filtrar los mejores horarios de la semana de forma rápida
+                  </p>
+                </div>
+                <span style={{ 
+                  fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary)', 
+                  background: 'var(--bg-elevated)', padding: '0.3rem 0.65rem', borderRadius: '99px',
+                  border: '1px solid rgba(148,163,184,0.12)'
+                }}>
+                  {selectedCity.name} · 7 Días
+                </span>
               </div>
-              <span style={{ 
-                fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary)', 
-                background: 'var(--bg-elevated)', padding: '0.3rem 0.65rem', borderRadius: '99px',
-                border: '1px solid rgba(148,163,184,0.12)'
-              }}>
-                {selectedCity.name} · 7 Días
-              </span>
+
+              {/* Task Filters */}
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {[
+                  { id: 'todos', label: 'Todas las labores', icon: Calendar },
+                  { id: 'fumigar', label: 'Fumigar', icon: Wind },
+                  { id: 'pulverizar', label: 'Pulverizar', icon: Wind },
+                  { id: 'sembrar', label: 'Sembrar', icon: Sprout },
+                  { id: 'cosechar', label: 'Cosechar', icon: Calendar }
+                ].map((item) => {
+                  const IconComponent = item.icon;
+                  const isActive = plannerFilter === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setPlannerFilter(item.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '99px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        border: isActive ? '1px solid var(--green)' : '1px solid rgba(148,163,184,0.15)',
+                        background: isActive ? 'var(--green-bg)' : 'var(--bg-elevated)',
+                        color: isActive ? 'var(--green)' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <IconComponent size={13} style={{ color: isActive ? 'var(--green)' : 'var(--text-muted)' }} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Quick Summary Banner for Task Filter */}
+              {plannerFilter !== 'todos' && (
+                <div style={{
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '10px',
+                  background: 'rgba(34, 197, 94, 0.08)',
+                  border: '1px solid rgba(34, 197, 94, 0.22)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--green)' }}>
+                    <CheckCircle2 size={15} />
+                    <span>Mejores Horarios Semanales para {plannerFilter.charAt(0).toUpperCase() + plannerFilter.slice(1)}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    {getBestWeeklyTimesForTask(weeklyAnalysis, plannerFilter).length > 0 ? (
+                      getBestWeeklyTimesForTask(weeklyAnalysis, plannerFilter).map((item, i) => (
+                        <div key={i} style={{
+                          fontSize: '0.64rem',
+                          padding: '0.25rem 0.55rem',
+                          borderRadius: '6px',
+                          background: 'var(--bg-card-solid)',
+                          border: item.status === 'green' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
+                          color: 'var(--text-primary)',
+                          fontWeight: 600
+                        }}>
+                          <strong style={{ color: 'var(--text-white)' }}>{item.dayName}:</strong> {item.windows}
+                        </div>
+                      ))
+                    ) : (
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                        Sin ventanas óptimas registradas para esta tarea en los próximos 7 días.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="forecast-cards-grid">
@@ -612,67 +723,91 @@ function App() {
 
                     {/* Tasks */}
                     <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      {/* Pulverizar */}
-                      <div style={{ paddingBottom: '0.45rem', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
-                            <Wind size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                            Pulverizar
-                          </span>
-                          <span className={`status-badge badge-${dayInfo.overallStatus}`}>
-                            {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
-                          </span>
+                      {/* Fumigar / Pulverizar */}
+                      {(plannerFilter === 'todos' || plannerFilter === 'fumigar' || plannerFilter === 'pulverizar') && (
+                        <div style={{ paddingBottom: '0.45rem', borderBottom: plannerFilter === 'todos' ? '1px solid rgba(148,163,184,0.08)' : 'none' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
+                              <Wind size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                              {plannerFilter === 'pulverizar' ? 'Pulverizar' : 'Fumigar / Pulverizar'}
+                            </span>
+                            <span className={`status-badge badge-${dayInfo.overallStatus}`}>
+                              {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
+                            </span>
+                          </div>
+                          {dayInfo.windows.length > 0 ? (
+                            <div style={{ 
+                              fontSize: '0.6rem', fontWeight: 800, color: 'var(--green)', 
+                              background: 'var(--green-bg)', padding: '0.3rem 0.45rem', borderRadius: '6px',
+                              border: '1px solid rgba(34,197,94,0.2)'
+                            }}>
+                              Ventana: {dayInfo.windows.join(' | ')}
+                            </div>
+                          ) : (
+                            <div style={{ 
+                              fontSize: '0.6rem', fontWeight: 700, color: 'var(--red)', 
+                              background: 'var(--red-bg)', padding: '0.3rem 0.45rem', borderRadius: '6px',
+                              border: '1px solid rgba(239,68,68,0.15)'
+                            }}>
+                              {dayInfo.nonOperationalReason}
+                            </div>
+                          )}
                         </div>
-                        {dayInfo.windows.length > 0 ? (
-                          <div style={{ 
-                            fontSize: '0.6rem', fontWeight: 800, color: 'var(--green)', 
-                            background: 'var(--green-bg)', padding: '0.3rem 0.45rem', borderRadius: '6px',
-                            border: '1px solid rgba(34,197,94,0.2)'
-                          }}>
-                            Ventana: {dayInfo.windows.join(' | ')}
-                          </div>
-                        ) : (
-                          <div style={{ 
-                            fontSize: '0.6rem', fontWeight: 700, color: 'var(--red)', 
-                            background: 'var(--red-bg)', padding: '0.3rem 0.45rem', borderRadius: '6px',
-                            border: '1px solid rgba(239,68,68,0.15)'
-                          }}>
-                            {dayInfo.nonOperationalReason}
-                          </div>
-                        )}
-                      </div>
+                      )}
 
                       {/* Siembra */}
-                      <div style={{ paddingBottom: '0.4rem', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
-                            <Sprout size={12} style={{ color: 'var(--accent-secondary)', flexShrink: 0 }} />
-                            Siembra
-                          </span>
-                          <span className={`status-badge badge-${dayInfo.sowEval.status}`}>
-                            {dayInfo.sowEval.label}
-                          </span>
+                      {(plannerFilter === 'todos' || plannerFilter === 'sembrar') && (
+                        <div style={{ paddingBottom: '0.4rem', borderBottom: plannerFilter === 'todos' ? '1px solid rgba(148,163,184,0.08)' : 'none' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
+                              <Sprout size={12} style={{ color: 'var(--accent-secondary)', flexShrink: 0 }} />
+                              Siembra
+                            </span>
+                            <span className={`status-badge badge-${dayInfo.sowEval.status}`}>
+                              {dayInfo.sowEval.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.2rem' }}>
+                            {dayInfo.sowEval.reason}
+                          </div>
+                          {plannerFilter === 'sembrar' && (
+                            <div style={{ 
+                              fontSize: '0.6rem', fontWeight: 800, color: dayInfo.sowEval.status === 'green' ? 'var(--green)' : 'var(--yellow)', 
+                              background: dayInfo.sowEval.status === 'green' ? 'var(--green-bg)' : 'var(--yellow-bg)', 
+                              padding: '0.25rem 0.45rem', borderRadius: '6px', marginTop: '0.2rem'
+                            }}>
+                              Mejores horas: {dayInfo.sowEval.windows?.length > 0 ? dayInfo.sowEval.windows.join(' | ') : (dayInfo.sowEval.status !== 'red' ? 'Diurno (Temp > 10°C)' : 'Sin ventana apta')}
+                            </div>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                          {dayInfo.sowEval.reason}
-                        </div>
-                      </div>
+                      )}
 
                       {/* Cosecha */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
-                            <Calendar size={12} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
-                            Cosecha
-                          </span>
-                          <span className={`status-badge badge-${dayInfo.harvestEval.status}`}>
-                            {dayInfo.harvestEval.label}
-                          </span>
+                      {(plannerFilter === 'todos' || plannerFilter === 'cosechar') && (
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
+                              <Calendar size={12} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
+                              Cosecha
+                            </span>
+                            <span className={`status-badge badge-${dayInfo.harvestEval.status}`}>
+                              {dayInfo.harvestEval.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.2rem' }}>
+                            {dayInfo.harvestEval.reason}
+                          </div>
+                          {plannerFilter === 'cosechar' && (
+                            <div style={{ 
+                              fontSize: '0.6rem', fontWeight: 800, color: dayInfo.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)', 
+                              background: dayInfo.harvestEval.status === 'green' ? 'var(--green-bg)' : 'var(--yellow-bg)', 
+                              padding: '0.25rem 0.45rem', borderRadius: '6px', marginTop: '0.2rem'
+                            }}>
+                              Mejores horas: {dayInfo.harvestEval.windows?.length > 0 ? dayInfo.harvestEval.windows.join(' | ') : (dayInfo.harvestEval.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana apta')}
+                            </div>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                          {dayInfo.harvestEval.reason}
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Wind Shifts */}
@@ -704,7 +839,7 @@ function App() {
                       </div>
                       {dayInfo.rainSum > 0 ? (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--blue)', fontWeight: 800 }}>
-                          <CloudRain size={11} /> {dayInfo.rainSum} mm
+                          <CloudRain size={11} /> {dayInfo.rainSum} mm {dayInfo.rainSchedule ? `(${dayInfo.rainSchedule})` : ''}
                         </span>
                       ) : (
                         <span>Sin lluvia</span>
@@ -730,7 +865,7 @@ function App() {
 
                 <div className="summary-stats-grid">
                   <div className="summary-stat-box">
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Horas Operativas</span>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Horas Aptas</span>
                     <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--green)' }}>{totalWeeklyGreenHours} hs</span>
                   </div>
                   <div className="summary-stat-box">

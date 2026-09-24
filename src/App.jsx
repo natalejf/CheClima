@@ -19,7 +19,7 @@ import {
 } from './utils/rules';
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedCity, setSelectedCity] = useState(DEFAULT_CITY); // Default Necochea
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);

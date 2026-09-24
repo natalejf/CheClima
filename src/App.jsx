@@ -135,10 +135,10 @@ function App() {
           </div>
           <div>
             <h1 className="brand-title flex items-center justify-center gap-2 text-2xl md:text-3xl font-black">
-              CheClima <span className="badge-beta">AGRO</span>
+              CheClima
             </h1>
             <p className="text-xs md:text-sm text-dark font-medium mt-1">
-              Monitor de decisiones para Pulverización, Siembra y Cosecha
+              Monitor de decisiones para Fumigar, Pulverizar, Sembrar y Cosechar
             </p>
           </div>
         </div>
@@ -228,8 +228,8 @@ function App() {
         <>
           {/* HERO PANORAMA CARD */}
           <div className="glass-panel hero-panorama-card mb-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass pb-4 mb-4">
-              <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-glass pb-4 mb-4">
+              <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <Sparkles size={16} className="text-primary-brand shrink-0" />
                   <span className="text-xs text-dark font-extrabold uppercase tracking-wider">Panorama de Campo</span>
@@ -239,14 +239,14 @@ function App() {
                 </h2>
               </div>
 
-              {/* Immediate Status Badge */}
-              <div className={`spray-now-badge badge-hero-${currentSprayEval?.status}`}>
-                {currentSprayEval?.status === 'green' && <CheckCircle2 size={26} className="shrink-0" />}
-                {currentSprayEval?.status === 'yellow' && <AlertCircle size={26} className="shrink-0" />}
-                {currentSprayEval?.status === 'red' && <XCircle size={26} className="shrink-0" />}
+              {/* Immediate Status Badge aligned to right */}
+              <div className={`spray-now-badge badge-hero-${currentSprayEval?.status} shrink-0`}>
+                {currentSprayEval?.status === 'green' && <CheckCircle2 size={24} className="shrink-0" />}
+                {currentSprayEval?.status === 'yellow' && <AlertCircle size={24} className="shrink-0" />}
+                {currentSprayEval?.status === 'red' && <XCircle size={24} className="shrink-0" />}
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-wider">Estado Actual</div>
-                  <div className="text-sm md:text-base font-black">
+                  <div className="text-[11px] font-bold uppercase tracking-wider">Estado Actual</div>
+                  <div className="text-sm font-black">
                     {currentSprayEval?.status === 'green' ? '🟢 100% OPERATIVO AHORA' : currentSprayEval?.status === 'yellow' ? '🟡 OPERATIVO CON PRECAUCIÓN' : '🔴 NO OPERATIVO AHORA'}
                   </div>
                 </div>
@@ -722,6 +722,13 @@ function App() {
           ></iframe>
         </div>
       </div>
+
+      {/* Footer Credit */}
+      <footer className="mt-8 text-center text-xs md:text-sm text-dark font-medium opacity-90 py-4 border-t border-white/20">
+        <p>
+          Creado por <strong>Juan Francisco Natale</strong> mediante desarrollo por inteligencia artificial en conjunto con la API de <strong>granos.ar</strong>
+        </p>
+      </footer>
     </div>
   );
 }

@@ -1,7 +1,9 @@
+import { getWindDirectionName } from './weather';
+
 /**
  * Agricultural Rules & Operational Windows Engine
  * Evaluates weather conditions to calculate precise spraying windows, 
- * optimal start/stop times, daily & hourly recommendations for farmers.
+ * wind shift timelines, daily & hourly recommendations for farmers.
  */
 
 // General spraying thresholds
@@ -67,26 +69,26 @@ export const evaluateConditions = (task, current) => {
   const { deltaT } = calculateDeltaT(temp, hum);
 
   if (task === 'pulverizar' || task === 'fumigar') {
-    if (rain > 0) return { status: 'red', message: `No aplicar. Lluvia activa (${rain} mm) lava el producto.` };
-    if (wind > SPRAY_MAX_WIND || gusts > SPRAY_MAX_GUST) return { status: 'red', message: `No aplicar. Viento fuerte (${wind} km/h, Ráfagas ${gusts} km/h) causa deriva.` };
-    if (wind < SPRAY_MIN_WIND) return { status: 'yellow', message: `Precaución. Viento calmo (${wind} km/h), posible Inversión Térmica.` };
-    if (temp > SPRAY_MAX_TEMP) return { status: 'red', message: `No aplicar. Temperatura extrema (${temp}°C), altísima evaporación.` };
-    if (hum < SPRAY_MIN_HUM) return { status: 'yellow', message: `Precaución. Baja humedad (${hum}%), Delta T: ${deltaT}°C. Usar antievaporante.` };
-    if (deltaT > 8) return { status: 'yellow', message: `Precaución. Delta T alto (${deltaT}°C), riesgo de pérdidas por evaporación.` };
-    return { status: 'green', message: `Condiciones atmosféricas ideales para pulverizar.` };
+    if (rain > 0) return { status: 'red', message: `No operativo: Lluvia activa (${rain} mm) lava el producto.` };
+    if (wind > SPRAY_MAX_WIND || gusts > SPRAY_MAX_GUST) return { status: 'red', message: `No operativo: Viento fuerte (${wind} km/h, Ráfagas ${gusts} km/h) causa deriva.` };
+    if (wind < SPRAY_MIN_WIND) return { status: 'yellow', message: `Operativo con precaución: Viento calmo (${wind} km/h), riesgo de Inversión Térmica.` };
+    if (temp > SPRAY_MAX_TEMP) return { status: 'red', message: `No operativo: Temperatura extrema (${temp}°C), altísima evaporación.` };
+    if (hum < SPRAY_MIN_HUM) return { status: 'yellow', message: `Operativo con precaución: Baja humedad (${hum}%), Delta T: ${deltaT}°C. Usar antievaporante.` };
+    if (deltaT > 8) return { status: 'yellow', message: `Operativo con precaución: Delta T alto (${deltaT}°C), riesgo de pérdidas por evaporación.` };
+    return { status: 'green', message: `100% Operativo: Condiciones atmosféricas ideales para pulverización.` };
   }
 
   if (task === 'sembrar') {
-    if (rain > 5) return { status: 'red', message: `Lluvia acumulada alto (${rain} mm), riesgo de encharcamiento y suelo pesado.` };
-    if (temp < 10) return { status: 'yellow', message: `Temperatura fresca (${temp}°C), germinación lenta.` };
-    return { status: 'green', message: `Condiciones favorables de suelo y temperatura para siembra.` };
+    if (rain > 5) return { status: 'red', message: `No operativo: Lluvia acumulada alto (${rain} mm), riesgo de encharcamiento y suelo pesado.` };
+    if (temp < 10) return { status: 'yellow', message: `Operativo con precaución: Temperatura fresca (${temp}°C), germinación lenta.` };
+    return { status: 'green', message: `100% Operativo: Condiciones favorables de suelo y temperatura para siembra.` };
   }
 
   if (task === 'cosechar') {
-    if (rain > 0) return { status: 'red', message: `Lluvia activa (${rain} mm). Imposible trillar.` };
-    if (hum > 75) return { status: 'red', message: `Humedad de ambiente elevada (${hum}%), riesgo de entrega de grano húmedo.` };
-    if (hum > 65) return { status: 'yellow', message: `Humedad límite (${hum}%), vigilar gasto de secadora.` };
-    return { status: 'green', message: `Humedad de aire óptima para cosecha limpia.` };
+    if (rain > 0) return { status: 'red', message: `No operativo: Lluvia activa (${rain} mm). Imposible trillar.` };
+    if (hum > 75) return { status: 'red', message: `No operativo: Humedad de ambiente elevada (${hum}%), riesgo de entrega de grano húmedo.` };
+    if (hum > 65) return { status: 'yellow', message: `Operativo con precaución: Humedad límite (${hum}%), vigilar gasto de secadora.` };
+    return { status: 'green', message: `100% Operativo: Humedad de aire óptima para cosecha limpia.` };
   }
 
   return { status: 'yellow', message: 'Sin datos para esta tarea.' };
@@ -103,10 +105,10 @@ export const evaluateHourlySpraying = (hourData) => {
     return { status: 'red', label: 'Lluvia', reason: `Lluvia activa (${rain} mm)` };
   }
   if (wind > SPRAY_MAX_WIND || gusts > SPRAY_MAX_GUST) {
-    return { status: 'red', label: 'Viento Alto', reason: `Viento: ${wind} km/h (Ráfagas: ${gusts} km/h)` };
+    return { status: 'red', label: 'Viento Alto', reason: `Viento excesivo (${wind} km/h, Ráfagas ${gusts} km/h)` };
   }
   if (temp > SPRAY_MAX_TEMP) {
-    return { status: 'red', label: 'Calor Extremo', reason: `Temperatura ${temp}°C` };
+    return { status: 'red', label: 'Calor Extremo', reason: `Temperatura alta (${temp}°C)` };
   }
   if (deltaT > 10) {
     return { status: 'red', label: 'Delta T Alto', reason: `Delta T crítico (${deltaT}°C)` };
@@ -124,7 +126,7 @@ export const evaluateHourlySpraying = (hourData) => {
 
 /**
  * Analyzes full week weather to generate optimal spray windows, 
- * best days, start/stop times per day.
+ * wind shifts per day, and non-operational reasons.
  */
 export const analyzeWeeklySprayingWindows = (weatherData) => {
   if (!weatherData?.hourly || !weatherData?.daily) return null;
@@ -148,6 +150,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
         const wind = hourly.wind_speed_10m[h];
         const gusts = hourly.wind_gusts_10m[h];
         const rain = hourly.precipitation[h];
+        const windDir = hourly.wind_direction_10m ? hourly.wind_direction_10m[h] : 0;
         const hourNum = new Date(timeStr).getHours();
 
         const evalResult = evaluateHourlySpraying({ temp, hum, wind, gusts, rain });
@@ -161,23 +164,21 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
           wind,
           gusts,
           rain,
+          windDir,
           eval: evalResult
         });
       }
     }
 
-    // Filter hours between 06:00 and 21:00 (practical working daylight hours)
+    // Filter daylight working hours (06:00 to 21:00)
     const workDayHours = dayHours.filter(item => item.hourNum >= 6 && item.hourNum <= 21);
     
     const greenHours = workDayHours.filter(item => item.eval.status === 'green');
     const yellowHours = workDayHours.filter(item => item.eval.status === 'yellow');
     const redHours = workDayHours.filter(item => item.eval.status === 'red');
 
-    // Find continuous green/yellow windows
-    let bestStart = null;
-    let bestStop = null;
+    // Continuous operational windows
     const windowsStrList = [];
-
     let currentWindow = [];
     workDayHours.forEach(item => {
       if (item.eval.status === 'green' || item.eval.status === 'yellow') {
@@ -197,44 +198,75 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       windowsStrList.push(`${startH}:00 a ${endH}:00 hs`);
     }
 
-    if (greenHours.length > 0) {
-      bestStart = `${greenHours[0].hourNum.toString().padStart(2, '0')}:00 hs`;
-      
-      // Find where conditions deteriorate (red or yellow after mid-day)
-      const stopSlot = workDayHours.find((item, idx) => item.hourNum > greenHours[0].hourNum && item.eval.status === 'red');
-      if (stopSlot) {
-        bestStop = `${stopSlot.hourNum.toString().padStart(2, '0')}:00 hs (${stopSlot.eval.reason})`;
-      } else {
-        bestStop = `${(greenHours[greenHours.length - 1].hourNum + 1).toString().padStart(2, '0')}:00 hs`;
+    // Wind shifts timeline for key day periods (08:00, 14:00, 20:00)
+    const morningSlot = dayHours.find(h => h.hourNum === 8) || dayHours[8];
+    const afternoonSlot = dayHours.find(h => h.hourNum === 14) || dayHours[14];
+    const eveningSlot = dayHours.find(h => h.hourNum === 20) || dayHours[20];
+
+    const windShifts = [
+      {
+        period: 'Mañana (08:00 hs)',
+        dir: getWindDirectionName(morningSlot?.windDir),
+        speed: morningSlot?.wind ?? 0,
+        gusts: morningSlot?.gusts ?? 0
+      },
+      {
+        period: 'Tarde (14:00 hs)',
+        dir: getWindDirectionName(afternoonSlot?.windDir),
+        speed: afternoonSlot?.wind ?? 0,
+        gusts: afternoonSlot?.gusts ?? 0
+      },
+      {
+        period: 'Noche (20:00 hs)',
+        dir: getWindDirectionName(eveningSlot?.windDir),
+        speed: eveningSlot?.wind ?? 0,
+        gusts: eveningSlot?.gusts ?? 0
       }
+    ];
+
+    // Build non-operational reasons if applicable
+    const nonOpReasons = [];
+    if (daily.precipitation_sum[d] > 0) {
+      nonOpReasons.push(`Lluvia acumulada (${daily.precipitation_sum[d]} mm)`);
+    }
+    if (daily.wind_speed_10m_max[d] > SPRAY_MAX_WIND) {
+      nonOpReasons.push(`Viento excesivo (hasta ${daily.wind_speed_10m_max[d]} km/h, Ráfagas ${daily.wind_gusts_10m_max[d]} km/h)`);
+    }
+    if (daily.temperature_2m_max[d] > SPRAY_MAX_TEMP) {
+      nonOpReasons.push(`Temperatura extrema (${daily.temperature_2m_max[d]}°C)`);
+    }
+    const deltaTReds = workDayHours.filter(item => calculateDeltaT(item.temp, item.hum).deltaT > 10);
+    if (deltaTReds.length > 0) {
+      nonOpReasons.push(`Delta T crítico en ${deltaTReds.length} hs (Evaporación rápida)`);
+    }
+    const inversionReds = workDayHours.filter(item => item.wind < 3);
+    if (inversionReds.length > 0) {
+      nonOpReasons.push(`Viento calmo (<3 km/h) en ${inversionReds.length} hs (Riesgo de Inversión Térmica)`);
     }
 
     let overallStatus = 'green';
-    let summaryText = '';
     if (greenHours.length >= 6) {
       overallStatus = 'green';
-      summaryText = `Excelente jornada (${greenHours.length} hs óptimas para pulverizar).`;
-    } else if (greenHours.length + yellowHours.length >= 4) {
+    } else if (greenHours.length + yellowHours.length >= 3) {
       overallStatus = 'yellow';
-      summaryText = `Ventana reducida (${greenHours.length} hs óptimas, ${yellowHours.length} hs precaución).`;
     } else {
       overallStatus = 'red';
-      summaryText = `Día desfavorable (${redHours.length} hs malas por viento/lluvia/calor).`;
     }
 
     daysAnalysis.push({
       dayIndex: d,
       dateStr: dayDateStr,
+      weatherCode: daily.weather_code[d],
       sunrise,
       sunset,
       greenCount: greenHours.length,
       yellowCount: yellowHours.length,
       redCount: redHours.length,
       overallStatus,
-      summaryText,
-      bestStart: bestStart || 'Sin ventana ideal',
-      bestStop: bestStop || 'N/D',
-      windows: windowsStrList.length > 0 ? windowsStrList : ['Sin ventana de trabajo continua'],
+      windows: windowsStrList.length > 0 ? windowsStrList : [],
+      isOperational: windowsStrList.length > 0 && overallStatus !== 'red',
+      nonOperationalReason: nonOpReasons.length > 0 ? nonOpReasons.join(' • ') : 'Condiciones estables sin impedimentos climáticos.',
+      windShifts,
       maxWind: daily.wind_speed_10m_max[d],
       maxGust: daily.wind_gusts_10m_max[d],
       rainSum: daily.precipitation_sum[d],
@@ -270,13 +302,13 @@ export const evaluateThermalInversion = (windSpeed) => {
     return {
       status: 'red',
       title: 'Alto Riesgo de Inversión Térmica',
-      advice: 'Calma chicha (viento < 3 km/h). Las gotas quedan flotando suspendidas y se desplazan km.'
+      advice: 'Calma chicha (viento < 3 km/h). Las gotas quedan suspendidas y se desplazan km.'
     };
   } else if (windSpeed >= 3 && windSpeed <= 6) {
     return {
       status: 'yellow',
       title: 'Riesgo Moderado de Inversión',
-      advice: 'Atención al amanecer/atardecer. Chequear temperatura del suelo.'
+      advice: 'Atención al amanecer/atardecer. Chequear temperatura a nivel del suelo.'
     };
   } else {
     return {

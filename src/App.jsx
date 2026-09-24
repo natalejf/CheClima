@@ -4,7 +4,8 @@ import {
   CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert,
   Gauge, AlertTriangle, Truck, Snowflake, Sunrise, Sunset,
   Sun, Award, CheckCircle2, XCircle, AlertCircle, Play,
-  Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles
+  Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles,
+  Activity, Zap, Eye, Radio
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
@@ -125,24 +126,44 @@ function App() {
   const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m) : null;
   const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
 
+  // Get current time
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="app-container">
-      {/* Minimalist Hero Search Header */}
-      <header className="app-header glass-panel mb-6 py-6 px-4 md:px-8 text-center flex flex-col items-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Sprout size={32} className="text-primary-brand" />
-          <h1 className="brand-title text-3xl md:text-4xl font-black text-dark tracking-tight">
+      {/* ═══ HEADER ═══ */}
+      <header className="app-header glass-panel mb-6 py-6 px-4 md:px-8" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+          <div style={{ 
+            width: '38px', height: '38px', borderRadius: '10px', 
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15))', 
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <Sprout size={22} style={{ color: '#22c55e' }} />
+          </div>
+          <h1 className="brand-title" style={{ fontSize: '1.75rem', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
             CheClima
           </h1>
+          <span style={{ 
+            fontSize: '0.55rem', fontWeight: 800, background: 'rgba(34, 197, 94, 0.15)', 
+            color: '#86efac', padding: '0.15rem 0.5rem', borderRadius: '99px', 
+            border: '1px solid rgba(34, 197, 94, 0.3)', letterSpacing: '0.05em', textTransform: 'uppercase'
+          }}>
+            MONITOR
+          </span>
         </div>
-        <p className="text-xs md:text-sm text-muted font-medium mb-5">
-          Monitor de campo para Fumigación, Pulverización, Siembra y Cosecha
+        <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, marginBottom: '1.15rem', letterSpacing: '0.01em' }}>
+          Monitor agroclimático para Fumigación · Pulverización · Siembra · Cosecha
         </p>
 
-        {/* Minimalist Centered Search Box with Necochea Preset */}
-        <div className="search-wrapper w-full max-w-xl mx-auto" ref={searchContainerRef}>
-          <div className="search-input-box shadow-md rounded-2xl">
-            <Search size={20} className="search-icon text-muted" />
+        {/* Search */}
+        <div className="search-wrapper" style={{ maxWidth: '520px', margin: '0 auto' }} ref={searchContainerRef}>
+          <div className="search-input-box" style={{ borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+            <Search size={18} className="search-icon" />
             <input
               type="text"
               placeholder="Buscar localidad (ej. Necochea, Balcarce, Pergamino)..."
@@ -158,16 +179,15 @@ function App() {
                 className="clear-btn" 
                 onClick={() => { setSearchQuery(''); setSearchResults([]); }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             )}
           </div>
 
-          {/* Dropdown Results */}
           {showDropdown && (searchResults.length > 0 || isSearching) && (
-            <div className="search-dropdown glass-panel text-left">
+            <div className="search-dropdown">
               {isSearching ? (
-                <div className="p-3 text-center text-sm text-muted">Buscando localidades...</div>
+                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>Buscando localidades...</div>
               ) : (
                 searchResults.map((item, idx) => (
                   <div 
@@ -178,10 +198,10 @@ function App() {
                       setSearchQuery(item.name);
                     }}
                   >
-                    <MapPin size={16} className="text-muted shrink-0" />
+                    <MapPin size={14} style={{ color: '#64748b', flexShrink: 0 }} />
                     <div>
-                      <span className="font-medium text-dark">{item.name}</span>
-                      <span className="text-xs text-muted ml-2">
+                      <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{item.name}</span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '0.4rem' }}>
                         {[item.admin1, item.country].filter(Boolean).join(', ')}
                       </span>
                     </div>
@@ -192,125 +212,149 @@ function App() {
           )}
         </div>
 
-        {/* Selected Location Pill */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-dark font-black text-sm md:text-base">
-          <MapPin size={18} className="text-primary-brand shrink-0" />
-          <span>Localidad seleccionada: <strong>{selectedCity.name}</strong></span>
-          <span className="text-xs text-muted font-bold">
-            ({[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')})
+        {/* Location Pill */}
+        <div style={{ 
+          marginTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+          fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0'
+        }}>
+          <MapPin size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+          <span>{selectedCity.name}</span>
+          <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
+            {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
+          </span>
+          <span style={{ 
+            width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', 
+            boxShadow: '0 0 6px rgba(34,197,94,0.5)', display: 'inline-block'
+          }} />
+          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+            LIVE
           </span>
         </div>
       </header>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-12 glass-panel">
-          <div className="loader mb-3"></div>
-          <p className="text-dark font-bold text-sm">Calculando ventanas operativas y condiciones para {selectedCity.name}...</p>
+        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
+          <div className="loader" style={{ marginBottom: '1rem' }}></div>
+          <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '0.85rem' }}>Calculando ventanas operativas...</p>
+          <p style={{ color: '#64748b', fontWeight: 500, fontSize: '0.72rem', marginTop: '0.25rem' }}>Conectando con modelos meteorológicos para {selectedCity.name}</p>
         </div>
       ) : current ? (
         <>
-          {/* HERO PANORAMA CARD */}
+          {/* ═══ HERO PANORAMA ═══ */}
           <div className="glass-panel hero-panorama-card mb-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-glass pb-4 mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-primary-brand shrink-0" />
-                  <span className="text-xs text-dark font-extrabold uppercase tracking-wider">Panorama de Campo</span>
+            {/* Top Row: Title + Status */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                    <Activity size={14} style={{ color: '#22c55e' }} />
+                    <span style={{ fontSize: '0.65rem', color: '#22c55e', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Campo</span>
+                    <span style={{ fontSize: '0.55rem', color: '#64748b', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
+                  </div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f1f5f9', lineHeight: 1.3 }}>
+                    {selectedCity.name}: ¿Conviene operar hoy?
+                  </h2>
                 </div>
-                <h2 className="text-xl md:text-2xl font-black text-dark mt-1">
-                  {selectedCity.name}: ¿Conviene fumigar/pulverizar hoy? <span className="text-sm md:text-base font-bold text-muted">({getFormattedTodayDate()})</span>
-                </h2>
-              </div>
 
-              {/* Immediate Status Badge aligned to right */}
-              <div className={`spray-now-badge badge-hero-${currentSprayEval?.status} shrink-0`}>
-                {currentSprayEval?.status === 'green' && <CheckCircle2 size={24} className="shrink-0" />}
-                {currentSprayEval?.status === 'yellow' && <AlertCircle size={24} className="shrink-0" />}
-                {currentSprayEval?.status === 'red' && <XCircle size={24} className="shrink-0" />}
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider">Estado Actual</div>
-                  <div className="text-sm font-black">
-                    {currentSprayEval?.status === 'green' ? '🟢 100% OPERATIVO AHORA' : currentSprayEval?.status === 'yellow' ? '🟡 OPERATIVO CON PRECAUCIÓN' : '🔴 NO OPERATIVO AHORA'}
+                {/* Status Badge */}
+                <div className={`spray-now-badge badge-hero-${currentSprayEval?.status}`} style={{ flexShrink: 0 }}>
+                  {currentSprayEval?.status === 'green' && <CheckCircle2 size={22} style={{ flexShrink: 0 }} />}
+                  {currentSprayEval?.status === 'yellow' && <AlertCircle size={22} style={{ flexShrink: 0 }} />}
+                  {currentSprayEval?.status === 'red' && <XCircle size={22} style={{ flexShrink: 0 }} />}
+                  <div>
+                    <div style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.8 }}>Estado Actual</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 900 }}>
+                      {currentSprayEval?.status === 'green' ? '🟢 OPERATIVO' : currentSprayEval?.status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO OPERATIVO'}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Row 1: 3 Cards in a Single Row */}
+            {/* 3 Panorama Cards */}
             <div className="hero-three-cards-grid">
-              {/* Card 1: Ventana Horaria Operativa Hoy */}
+              {/* Ventana Horaria */}
               <div className="panorama-box green-highlight">
-                <div className="flex items-center gap-2 mb-1 text-primary-brand font-black text-xs uppercase">
-                  <Play size={16} /> Ventana Horaria Operativa Hoy
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
+                  <Play size={13} style={{ color: '#22c55e' }} />
+                  <span style={{ fontSize: '0.6rem', color: '#22c55e', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Operativa</span>
                 </div>
-                <div className="text-base md:text-lg font-black text-dark">
-                  {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima continua'}
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#f1f5f9' }}>
+                  {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima'}
                 </div>
-                <span className="text-xs text-muted mt-1 font-medium">Horario apto para pulverizar/fumigar</span>
+                <span style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.25rem', fontWeight: 500 }}>Horario apto para pulverizar</span>
               </div>
 
-              {/* Card 2: Diagnóstico & Estado */}
+              {/* Diagnóstico */}
               <div className="panorama-box amber-highlight">
-                <div className="flex items-center gap-2 mb-1 text-amber-800 font-black text-xs uppercase">
-                  <ShieldAlert size={16} /> Diagnóstico en Lote Hoy
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
+                  <ShieldAlert size={13} style={{ color: '#f59e0b' }} />
+                  <span style={{ fontSize: '0.6rem', color: '#fcd34d', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnóstico</span>
                 </div>
-                <div className="text-xs md:text-sm font-bold text-dark leading-snug">
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#e2e8f0', lineHeight: 1.4 }}>
                   {currentSprayEval?.message}
                 </div>
-                <span className="text-xs text-muted mt-1 font-medium">Viento: {current.wind_speed_10m} km/h • Delta T: {deltaT?.deltaT}°C</span>
+                <span style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Viento: {current.wind_speed_10m} km/h • ΔT: {deltaT?.deltaT}°C
+                </span>
               </div>
 
-              {/* Card 3: Horarios de Luz Solar */}
+              {/* Sol */}
               <div className="panorama-box blue-highlight">
-                <div className="flex items-center gap-2 mb-1 text-blue-700 font-black text-xs uppercase">
-                  <Sun size={16} /> Salida y Puesta del Sol
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
+                  <Sun size={13} style={{ color: '#3b82f6' }} />
+                  <span style={{ fontSize: '0.6rem', color: '#93c5fd', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Luz Solar</span>
                 </div>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center gap-1 text-xs text-dark font-bold">
-                    <Sunrise size={16} className="text-amber-500 shrink-0" />
-                    <span>Salida: {formatTimeHHMM(todayAnalysis?.sunrise)} hs</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginTop: '0.15rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Sunrise size={14} style={{ color: '#fcd34d', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#e2e8f0' }}>{formatTimeHHMM(todayAnalysis?.sunrise)}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-dark font-bold">
-                    <Sunset size={16} className="text-orange-500 shrink-0" />
-                    <span>Puesta: {formatTimeHHMM(todayAnalysis?.sunset)} hs</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Sunset size={14} style={{ color: '#fdba74', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#e2e8f0' }}>{formatTimeHHMM(todayAnalysis?.sunset)}</span>
                   </div>
                 </div>
-                <div className="text-xs text-muted mt-1 font-medium">
-                  Luz solar disponible: <strong>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
-                </div>
+                <span style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.35rem', fontWeight: 500 }}>
+                  Duración: <strong style={{ color: '#e2e8f0' }}>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
+                </span>
               </div>
             </div>
 
-            {/* Row 2: Prominent Single Full-Width Banner for Best Day */}
+            {/* Best Day Banner */}
             {bestDay && (
-              <div className="best-day-banner-prominent mt-4 w-full">
-                <div className="best-day-icon-circle shrink-0">
-                  <Award size={32} className="text-amber-600" />
+              <div className="best-day-banner-prominent" style={{ marginTop: '1rem' }}>
+                <div className="best-day-icon-circle">
+                  <Award size={28} style={{ color: '#fcd34d' }} />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase text-amber-900 tracking-wider bg-amber-200 px-2.5 py-0.5 rounded-full border border-amber-300">
-                      🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR / PULVERIZAR
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <span style={{ 
+                      fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', color: '#fcd34d',
+                      background: 'rgba(245,158,11,0.15)', padding: '0.15rem 0.55rem', borderRadius: '99px',
+                      border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
+                    }}>
+                      🏆 Mejor día para operar
                     </span>
                   </div>
-                  <div className="text-lg md:text-xl font-black text-dark mt-1">
-                    {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — <span className="text-emerald-800">{bestDay.greenCount} horas de ventana óptima</span>
+                  <div style={{ fontSize: '1rem', fontWeight: 900, color: '#f1f5f9', marginTop: '0.3rem' }}>
+                    {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — <span style={{ color: '#86efac' }}>{bestDay.greenCount} hs óptimas</span>
                   </div>
-                  <div className="text-xs md:text-sm text-dark font-semibold mt-0.5">
-                    {bestDay.windows.length > 0 ? `Ventanas recomendadas: ${bestDay.windows.join(' y ')}.` : 'Día con menor viento y lluvias.'} Viento máx: {bestDay.maxWind} km/h (Ráf: {bestDay.maxGust} km/h).
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600, marginTop: '0.15rem' }}>
+                    {bestDay.windows.length > 0 ? `Ventanas: ${bestDay.windows.join(' y ')}.` : 'Menor viento y lluvias.'} Viento máx: {bestDay.maxWind} km/h
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* MAIN GRID: CURRENT WEATHER METRICS & AG-TASKS */}
+          {/* ═══ MAIN GRID: Weather + Tasks ═══ */}
           <div className="main-grid mb-6">
-            {/* Current Weather Card */}
-            <div className="glass-panel weather-card">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <Thermometer size={20} className="text-primary-brand" /> Clima Actual en {selectedCity.name}
+            {/* Current Weather */}
+            <div className="glass-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <Thermometer size={18} style={{ color: '#22c55e' }} /> Clima Actual
                 </h2>
                 <span className="weather-badge">
                   {getWeatherDescription(current.weather_code)}
@@ -324,59 +368,58 @@ function App() {
                 </div>
 
                 <div className="weather-metrics">
-                  {/* Wind Metric */}
+                  {/* Wind */}
                   <div className="metric-box highlighted">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Wind size={18} className="text-primary-brand" />
-                      <span className="text-xs text-muted font-bold uppercase tracking-wider">Viento</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Wind size={16} style={{ color: '#22c55e' }} />
+                      <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Viento</span>
                     </div>
-                    <div className="text-xl font-black text-dark">
-                      {current.wind_speed_10m} <span className="text-sm font-normal text-muted">km/h</span>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f1f5f9' }}>
+                      {current.wind_speed_10m} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#94a3b8' }}>km/h</span>
                     </div>
-                    <div className="text-xs text-muted mt-1">
-                      Ráfagas: <strong className="text-dark">{current.wind_gusts_10m} km/h</strong>
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                      Ráfagas: <strong style={{ color: '#e2e8f0' }}>{current.wind_gusts_10m} km/h</strong>
                     </div>
-                    <div className="wind-direction-pill mt-2 flex items-center gap-1-5">
+                    <div className="wind-direction-pill" style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <Navigation 
-                        size={14} 
-                        style={{ transform: `rotate(${current.wind_direction_10m}deg)` }} 
-                        className="shrink-0 text-primary-brand"
+                        size={12} 
+                        style={{ transform: `rotate(${current.wind_direction_10m}deg)`, color: '#22c55e', flexShrink: 0 }}
                       />
-                      <span>Viento del <strong>{getWindDirectionName(current.wind_direction_10m)}</strong></span>
-                      <span className="text-xs text-muted">({current.wind_direction_10m}°)</span>
+                      <span style={{ fontSize: '0.65rem' }}>{getWindDirectionName(current.wind_direction_10m)}</span>
+                      <span style={{ fontSize: '0.6rem', color: '#64748b' }}>({current.wind_direction_10m}°)</span>
                     </div>
                   </div>
 
-                  {/* Humidity Metric */}
+                  {/* Humidity */}
                   <div className="metric-box">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Droplets size={18} className="text-blue-500" />
-                      <span className="text-xs text-muted font-bold uppercase tracking-wider">Humedad</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Droplets size={16} style={{ color: '#3b82f6' }} />
+                      <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Humedad</span>
                     </div>
-                    <div className="text-xl font-black text-dark">{current.relative_humidity_2m}%</div>
-                    <span className="text-xs text-muted mt-1">Humedad relativa</span>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f1f5f9' }}>{current.relative_humidity_2m}%</div>
+                    <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.2rem' }}>Humedad relativa</span>
                   </div>
 
-                  {/* Precipitation Metric */}
+                  {/* Precipitation */}
                   <div className="metric-box">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CloudRain size={18} className="text-blue-500" />
-                      <span className="text-xs text-muted font-bold uppercase tracking-wider">Lluvia</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <CloudRain size={16} style={{ color: '#3b82f6' }} />
+                      <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Lluvia</span>
                     </div>
-                    <div className="text-xl font-black text-dark">{current.precipitation} <span className="text-sm font-normal text-muted">mm</span></div>
-                    <span className="text-xs text-muted mt-1">Precipitación actual</span>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f1f5f9' }}>{current.precipitation} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#94a3b8' }}>mm</span></div>
+                    <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.2rem' }}>Precipitación actual</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* General Agricultural Task Semaphore */}
-            <div className="glass-panel tasks-card">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <ShieldAlert size={20} className="text-primary-brand" /> Semáforo de Labores
+            {/* Task Semaphore */}
+            <div className="glass-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <ShieldAlert size={18} style={{ color: '#22c55e' }} /> Semáforo de Labores
                 </h2>
-                <span className="text-xs text-muted font-medium">Evaluación de campo</span>
+                <span style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 600 }}>Evaluación en tiempo real</span>
               </div>
 
               <div className="tasks-grid">
@@ -385,17 +428,17 @@ function App() {
                   return (
                     <div key={task} className={`state-card state-border-${rules.status}`}>
                       <div className="state-header">
-                        <span className="font-extrabold capitalize text-dark flex items-center gap-2 text-sm">
-                          {task === 'pulverizar' && <Wind size={16} />}
-                          {task === 'sembrar' && <Sprout size={16} />}
-                          {task === 'cosechar' && <Calendar size={16} />}
+                        <span style={{ fontWeight: 800, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', textTransform: 'capitalize' }}>
+                          {task === 'pulverizar' && <Wind size={15} style={{ color: '#22c55e' }} />}
+                          {task === 'sembrar' && <Sprout size={15} style={{ color: '#10b981' }} />}
+                          {task === 'cosechar' && <Calendar size={15} style={{ color: '#f59e0b' }} />}
                           {task === 'pulverizar' ? 'Pulverizar / Fumigar' : task}
                         </span>
                         <span className={`status-badge badge-${rules.status}`}>
-                          {rules.status === 'green' ? '100% OPERATIVO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO OPERATIVO'}
+                          {rules.status === 'green' ? 'OPERATIVO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO OPERATIVO'}
                         </span>
                       </div>
-                      <p className="text-xs text-muted mt-2 leading-relaxed">{rules.message}</p>
+                      <p style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.4rem', lineHeight: 1.5 }}>{rules.message}</p>
                     </div>
                   );
                 })}
@@ -403,22 +446,105 @@ function App() {
             </div>
           </div>
 
-          {/* PLANIFICADOR SEMANAL EN TARJETAS DE PRONÓSTICO MULTI-TAREA (7 DÍAS + 2 SLOTS AGRONÓMICOS) */}
+          {/* ═══ MONITORES AGRONÓMICOS ═══ */}
           <div className="glass-panel mb-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                <Gauge size={18} style={{ color: '#22c55e' }} /> Monitores de Aplicación
+              </h2>
+              <span style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: 600, display: 'none' }} className="sm:inline">Delta T · Inversión · Piso · Heladas</span>
+            </div>
+
+            <div className="insights-grid">
+              {/* Delta T */}
+              {deltaT && (
+                <div className={`insight-card insight-border-${deltaT.status}`}>
+                  <div className="insight-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Gauge size={16} style={{ color: '#22c55e' }} />
+                      <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.78rem' }}>Delta T</span>
+                    </div>
+                    <span className={`status-badge badge-${deltaT.status}`}>
+                      {deltaT.deltaT} °C
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#e2e8f0', marginTop: '0.2rem' }}>Zona: {deltaT.zone}</div>
+                  <p style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.2rem', lineHeight: 1.5 }}>{deltaT.advice}</p>
+                </div>
+              )}
+
+              {/* Thermal Inversion */}
+              {thermalInversion && (
+                <div className={`insight-card insight-border-${thermalInversion.status}`}>
+                  <div className="insight-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+                      <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.78rem' }}>Inversión Térmica</span>
+                    </div>
+                    <span className={`status-badge badge-${thermalInversion.status}`}>
+                      {thermalInversion.status === 'green' ? 'BAJO' : thermalInversion.status === 'yellow' ? 'MODERADO' : 'ALTO'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#e2e8f0', marginTop: '0.2rem' }}>{thermalInversion.title}</div>
+                  <p style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.2rem', lineHeight: 1.5 }}>{thermalInversion.advice}</p>
+                </div>
+              )}
+
+              {/* Soil */}
+              {soilTraffic && (
+                <div className={`insight-card insight-border-${soilTraffic.status}`}>
+                  <div className="insight-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Truck size={16} style={{ color: '#3b82f6' }} />
+                      <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.78rem' }}>Piso en Lote</span>
+                    </div>
+                    <span className={`status-badge badge-${soilTraffic.status}`}>
+                      {soilTraffic.status === 'green' ? 'TRANSITABLE' : soilTraffic.status === 'yellow' ? 'PRECAUCIÓN' : 'BARRO'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#e2e8f0', marginTop: '0.2rem' }}>{soilTraffic.title}</div>
+                  <p style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.2rem', lineHeight: 1.5 }}>{soilTraffic.advice}</p>
+                </div>
+              )}
+
+              {/* Frost */}
+              {frostRisk && (
+                <div className={`insight-card insight-border-${frostRisk.status}`}>
+                  <div className="insight-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Snowflake size={16} style={{ color: '#3b82f6' }} />
+                      <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.78rem' }}>Heladas</span>
+                    </div>
+                    <span className={`status-badge badge-${frostRisk.status}`}>
+                      {frostRisk.status === 'green' ? 'SIN RIESGO' : frostRisk.status === 'yellow' ? 'ALERTA' : 'HELADA'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#e2e8f0', marginTop: '0.2rem' }}>{frostRisk.title}</div>
+                  <p style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.2rem', lineHeight: 1.5 }}>{frostRisk.advice}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ═══ PLANIFICADOR SEMANAL ═══ */}
+          <div className="glass-panel mb-6">
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1rem' }}>
               <div>
-                <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <Calendar size={20} className="text-primary-brand" /> Planificador Semanal de Labores Agrícolas (7 Días)
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <Calendar size={18} style={{ color: '#22c55e' }} /> Planificador Semanal
                 </h2>
-                <p className="text-xs text-muted mt-0.5">Evaluación diaria completa de Pulverización/Fumigación, Siembra y Cosecha</p>
+                <p style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '0.15rem' }}>Evaluación diaria de Pulverización, Siembra y Cosecha</p>
               </div>
-              <span className="text-xs font-bold text-dark bg-glass-light px-3 py-1 rounded-full border border-glass">
-                Necochea y Zona • 7 Días
+              <span style={{ 
+                fontSize: '0.58rem', fontWeight: 700, color: '#94a3b8', 
+                background: 'rgba(30,41,59,0.5)', padding: '0.3rem 0.65rem', borderRadius: '99px',
+                border: '1px solid rgba(148,163,184,0.12)'
+              }}>
+                {selectedCity.name} · 7 Días
               </span>
             </div>
 
             <div className="forecast-cards-grid">
-              {/* 7 Daily Forecast Cards evaluating ALL 3 tasks */}
               {weeklyAnalysis?.days?.map((dayInfo, idx) => {
                 const dayName = getDayName(dayInfo.dateStr, idx);
                 const dateFormatted = formatDateShort(dayInfo.dateStr);
@@ -428,275 +554,197 @@ function App() {
                     key={idx} 
                     className={`forecast-day-card card-status-${dayInfo.overallStatus} ${idx === 0 ? 'today-active-card' : ''}`}
                   >
-                    {/* Card Top Header */}
+                    {/* Header */}
                     <div className="card-top-header">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-dark text-base">{dayName}</span>
-                          <span className="text-xs text-muted font-bold">{dateFormatted}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{ fontWeight: 900, color: '#f1f5f9', fontSize: '0.9rem' }}>{dayName}</span>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700 }}>{dateFormatted}</span>
                           {idx === 0 && <span className="today-badge">HOY</span>}
                         </div>
-                        <span className="text-xs text-muted flex items-center gap-1 mt-0.5 font-medium">
-                          <CloudSun size={13} className="text-muted" />
+                        <span style={{ fontSize: '0.6rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem', fontWeight: 500 }}>
+                          <CloudSun size={12} style={{ color: '#64748b' }} />
                           {getWeatherDescription(dayInfo.weatherCode)}
                         </span>
                       </div>
 
-                      {/* Temperature Range Pill */}
                       <div className="card-temp-pill">
-                        <span className="font-black text-dark">{Math.round(dayInfo.maxTemp)}°</span>
-                        <span className="text-muted text-xs font-bold">/ {Math.round(dayInfo.minTemp)}°</span>
+                        <span style={{ fontWeight: 900, color: '#f1f5f9' }}>{Math.round(dayInfo.maxTemp)}°</span>
+                        <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}> / {Math.round(dayInfo.minTemp)}°</span>
                       </div>
                     </div>
 
-                    {/* ALL 3 FIELD TASKS EVALUATION */}
-                    <div className="card-tasks-multi-section mt-3 flex flex-col gap-2">
-                      {/* Task 1: Pulverización / Fumigación */}
-                      <div className="task-row-item pb-2 border-b border-white/20">
-                        <div className="flex items-center justify-between text-xs font-bold mb-1">
-                          <span className="flex items-center gap-1.5 text-dark">
-                            <Wind size={13} className="text-primary-brand shrink-0" />
-                            Pulverizar / Fumigar
+                    {/* Tasks */}
+                    <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {/* Pulverizar */}
+                      <div style={{ paddingBottom: '0.45rem', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#e2e8f0' }}>
+                            <Wind size={12} style={{ color: '#22c55e', flexShrink: 0 }} />
+                            Pulverizar
                           </span>
                           <span className={`status-badge badge-${dayInfo.overallStatus}`}>
                             {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
                           </span>
                         </div>
                         {dayInfo.windows.length > 0 ? (
-                          <div className="text-[11px] font-black text-emerald-950 bg-emerald-100/90 p-1.5 rounded border border-emerald-300/60">
+                          <div style={{ 
+                            fontSize: '0.6rem', fontWeight: 800, color: '#86efac', 
+                            background: 'rgba(34,197,94,0.1)', padding: '0.3rem 0.45rem', borderRadius: '6px',
+                            border: '1px solid rgba(34,197,94,0.2)'
+                          }}>
                             Ventana: {dayInfo.windows.join(' | ')}
                           </div>
                         ) : (
-                          <div className="text-[11px] font-bold text-rose-900 bg-rose-100/90 p-1.5 rounded border border-rose-300/60">
-                            Restricción: {dayInfo.nonOperationalReason}
+                          <div style={{ 
+                            fontSize: '0.6rem', fontWeight: 700, color: '#fca5a5', 
+                            background: 'rgba(239,68,68,0.08)', padding: '0.3rem 0.45rem', borderRadius: '6px',
+                            border: '1px solid rgba(239,68,68,0.15)'
+                          }}>
+                            {dayInfo.nonOperationalReason}
                           </div>
                         )}
                       </div>
 
-                      {/* Task 2: Siembra */}
-                      <div className="task-row-item py-2 border-b border-white/20">
-                        <div className="flex items-center justify-between text-xs font-bold mb-0.5">
-                          <span className="flex items-center gap-1.5 text-dark">
-                            <Sprout size={13} className="text-emerald-700 shrink-0" />
+                      {/* Siembra */}
+                      <div style={{ paddingBottom: '0.4rem', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#e2e8f0' }}>
+                            <Sprout size={12} style={{ color: '#10b981', flexShrink: 0 }} />
                             Siembra
                           </span>
                           <span className={`status-badge badge-${dayInfo.sowEval.status}`}>
                             {dayInfo.sowEval.label}
                           </span>
                         </div>
-                        <div className="text-[11px] text-muted font-medium">
+                        <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 500 }}>
                           {dayInfo.sowEval.reason}
                         </div>
                       </div>
 
-                      {/* Task 3: Cosecha / Trilla */}
-                      <div className="task-row-item pt-1">
-                        <div className="flex items-center justify-between text-xs font-bold mb-0.5">
-                          <span className="flex items-center gap-1.5 text-dark">
-                            <Calendar size={13} className="text-amber-700 shrink-0" />
-                            Cosecha / Trilla
+                      {/* Cosecha */}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#e2e8f0' }}>
+                            <Calendar size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                            Cosecha
                           </span>
                           <span className={`status-badge badge-${dayInfo.harvestEval.status}`}>
                             {dayInfo.harvestEval.label}
                           </span>
                         </div>
-                        <div className="text-[11px] text-muted font-medium">
+                        <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 500 }}>
                           {dayInfo.harvestEval.reason}
                         </div>
                       </div>
                     </div>
 
-                    {/* Wind Shifts Timeline */}
-                    <div className="card-wind-shifts mt-3 pt-3 border-t border-glass">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1">
-                        <Compass size={13} className="text-primary-brand" /> Cambios del Viento en el Día
+                    {/* Wind Shifts */}
+                    <div style={{ marginTop: '0.65rem', paddingTop: '0.55rem', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Compass size={11} style={{ color: '#22c55e' }} /> Viento
                       </div>
-
                       <div className="wind-shifts-grid">
                         {dayInfo.windShifts.map((shift, sIdx) => (
                           <div key={sIdx} className="wind-shift-item">
-                            <span className="text-[10px] text-muted uppercase font-bold">{shift.period.split(' ')[0]}</span>
-                            <span className="text-xs font-black text-dark flex items-center gap-1">
-                              <Navigation size={10} className="text-muted" style={{ transform: 'rotate(0deg)' }} />
-                              {shift.dir} {shift.speed} <span className="text-[10px] font-normal text-muted">km/h</span>
+                            <span style={{ fontSize: '0.5rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>{shift.period.split(' ')[0]}</span>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                              {shift.dir} {shift.speed}
                             </span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Footer: Sun & Rain Metrics */}
-                    <div className="card-footer-metrics mt-3 pt-2 border-t border-glass flex items-center justify-between text-xs text-muted font-medium">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1 text-[11px]">
-                          <Sunrise size={12} className="text-amber-500 shrink-0" /> {formatTimeHHMM(dayInfo.sunrise)}
+                    {/* Footer */}
+                    <div style={{ marginTop: '0.55rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(148,163,184,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem', color: '#64748b', fontWeight: 500 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <Sunrise size={11} style={{ color: '#fcd34d', flexShrink: 0 }} /> {formatTimeHHMM(dayInfo.sunrise)}
                         </span>
-                        <span className="flex items-center gap-1 text-[11px]">
-                          <Sunset size={12} className="text-orange-500 shrink-0" /> {formatTimeHHMM(dayInfo.sunset)}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <Sunset size={11} style={{ color: '#fdba74', flexShrink: 0 }} /> {formatTimeHHMM(dayInfo.sunset)}
                         </span>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        {dayInfo.rainSum > 0 ? (
-                          <span className="flex items-center gap-1 text-blue-700 text-[11px] font-black">
-                            <CloudRain size={12} /> {dayInfo.rainSum} mm
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted">Sin lluvia</span>
-                        )}
-                      </div>
+                      {dayInfo.rainSum > 0 ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#93c5fd', fontWeight: 800 }}>
+                          <CloudRain size={11} /> {dayInfo.rainSum} mm
+                        </span>
+                      ) : (
+                        <span>Sin lluvia</span>
+                      )}
                     </div>
                   </div>
                 );
               })}
 
-              {/* Slot 8: Resumen Estadístico Semanal de Campo */}
+              {/* Summary Card */}
               <div className="forecast-day-card summary-card-slot">
-                <div className="card-top-header mb-2">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 size={20} className="text-primary-brand shrink-0" />
-                    <span className="font-black text-dark text-base">Resumen Semanal</span>
+                <div className="card-top-header" style={{ marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <BarChart3 size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 900, color: '#f1f5f9', fontSize: '0.9rem' }}>Resumen</span>
                   </div>
                   <span className="weather-badge">7 Días</span>
                 </div>
 
-                <p className="text-xs text-muted mb-3 leading-relaxed">
-                  Consolidado meteorológico acumulado para la planificación de tareas en Necochea.
+                <p style={{ fontSize: '0.62rem', color: '#94a3b8', marginBottom: '0.65rem', lineHeight: 1.5 }}>
+                  Consolidado meteorológico para planificación en {selectedCity.name}.
                 </p>
 
                 <div className="summary-stats-grid">
                   <div className="summary-stat-box">
-                    <span className="text-[11px] text-muted font-bold">Horas Operativas Totales</span>
-                    <span className="text-lg font-black text-emerald-700">{totalWeeklyGreenHours} hs</span>
+                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>Horas Operativas</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 900, color: '#86efac' }}>{totalWeeklyGreenHours} hs</span>
                   </div>
-
                   <div className="summary-stat-box">
-                    <span className="text-[11px] text-muted font-bold">Lluvia Acumulada</span>
-                    <span className="text-lg font-black text-blue-700">{totalWeeklyRainfall} mm</span>
+                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>Lluvia Acumulada</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 900, color: '#93c5fd' }}>{totalWeeklyRainfall} mm</span>
                   </div>
-
                   <div className="summary-stat-box">
-                    <span className="text-[11px] text-muted font-bold">Ráfaga Máxima Semanal</span>
-                    <span className="text-lg font-black text-amber-700">{maxWeeklyGust} km/h</span>
+                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700 }}>Ráfaga Máxima</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 900, color: '#fcd34d' }}>{maxWeeklyGust} km/h</span>
                   </div>
                 </div>
               </div>
 
-              {/* Slot 9: Buenas Prácticas Agrícolas (BPA) */}
+              {/* BPA Card */}
               <div className="forecast-day-card summary-card-slot">
-                <div className="card-top-header mb-2">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare size={20} className="text-primary-brand shrink-0" />
-                    <span className="font-black text-dark text-base">Guía BPA Pulverización</span>
+                <div className="card-top-header" style={{ marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <CheckSquare size={18} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 900, color: '#f1f5f9', fontSize: '0.9rem' }}>Guía BPA</span>
                   </div>
                   <span className="today-badge">BPA</span>
                 </div>
 
-                <p className="text-xs text-muted mb-2 leading-relaxed">
-                  Reglas recomendadas para optimizar la eficiencia de los agroquímicos en lote:
+                <p style={{ fontSize: '0.62rem', color: '#94a3b8', marginBottom: '0.5rem', lineHeight: 1.5 }}>
+                  Reglas para optimizar eficiencia de agroquímicos:
                 </p>
 
-                <ul className="bpa-checklist text-xs text-dark">
+                <ul className="bpa-checklist">
                   <li>🟢 <strong>Viento óptimo:</strong> 3 a 15 km/h (evita deriva e inversión).</li>
                   <li>🟢 <strong>Delta T ideal:</strong> 2°C a 8°C (evita evaporación rápida).</li>
-                  <li>🟡 <strong>Ráfagas &gt; 15 km/h:</strong> Usar pastillas antideriva / aire.</li>
-                  <li>🔴 <strong>Temp &gt; 30°C / Delta T &gt; 10°C:</strong> Suspender aplicaciones.</li>
+                  <li>🟡 <strong>Ráfagas &gt; 15 km/h:</strong> Usar pastillas antideriva.</li>
+                  <li>🔴 <strong>Temp &gt; 30°C / ΔT &gt; 10°C:</strong> Suspender aplicaciones.</li>
                 </ul>
               </div>
             </div>
           </div>
-
-          {/* MONITORES AGRONÓMICOS TÉCNICOS (Delta T, Inversión Térmica, Piso en Lote, Heladas) */}
-          <div className="glass-panel mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="flex items-center gap-2 text-base md:text-lg">
-                <Gauge size={20} className="text-primary-brand" /> Monitores de Parámetros de Aplicación
-              </h2>
-              <span className="text-xs text-muted hidden sm:inline">Delta T, Inversión, Piso y Heladas</span>
-            </div>
-
-            <div className="insights-grid">
-              {/* Delta T Monitor Card */}
-              {deltaT && (
-                <div className={`insight-card insight-border-${deltaT.status}`}>
-                  <div className="insight-header">
-                    <div className="flex items-center gap-2">
-                      <Gauge size={18} className="text-primary-brand" />
-                      <span className="font-bold text-dark text-sm">Delta T (Evaporación)</span>
-                    </div>
-                    <span className={`status-badge badge-${deltaT.status}`}>
-                      {deltaT.deltaT} °C
-                    </span>
-                  </div>
-                  <div className="text-xs font-semibold text-dark mt-1">Zona: {deltaT.zone}</div>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{deltaT.advice}</p>
-                </div>
-              )}
-
-              {/* Thermal Inversion Risk Card */}
-              {thermalInversion && (
-                <div className={`insight-card insight-border-${thermalInversion.status}`}>
-                  <div className="insight-header">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={18} className="text-amber-600" />
-                      <span className="font-bold text-dark text-sm">Inversión Térmica</span>
-                    </div>
-                    <span className={`status-badge badge-${thermalInversion.status}`}>
-                      {thermalInversion.status === 'green' ? 'BAJO RIESGO' : thermalInversion.status === 'yellow' ? 'MODERADO' : 'ALTO RIESGO'}
-                    </span>
-                  </div>
-                  <div className="text-xs font-semibold text-dark mt-1">{thermalInversion.title}</div>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{thermalInversion.advice}</p>
-                </div>
-              )}
-
-              {/* Soil Trafficability Card */}
-              {soilTraffic && (
-                <div className={`insight-card insight-border-${soilTraffic.status}`}>
-                  <div className="insight-header">
-                    <div className="flex items-center gap-2">
-                      <Truck size={18} className="text-blue-600" />
-                      <span className="font-bold text-dark text-sm">Piso en Lote</span>
-                    </div>
-                    <span className={`status-badge badge-${soilTraffic.status}`}>
-                      {soilTraffic.status === 'green' ? 'TRANSITABLE' : soilTraffic.status === 'yellow' ? 'PRECAUCIÓN' : 'BARRO'}
-                    </span>
-                  </div>
-                  <div className="text-xs font-semibold text-dark mt-1">{soilTraffic.title}</div>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{soilTraffic.advice}</p>
-                </div>
-              )}
-
-              {/* Frost Risk Card */}
-              {frostRisk && (
-                <div className={`insight-card insight-border-${frostRisk.status}`}>
-                  <div className="insight-header">
-                    <div className="flex items-center gap-2">
-                      <Snowflake size={18} className="text-blue-600" />
-                      <span className="font-bold text-dark text-sm">Riesgo de Heladas</span>
-                    </div>
-                    <span className={`status-badge badge-${frostRisk.status}`}>
-                      {frostRisk.status === 'green' ? 'SIN HELADAS' : frostRisk.status === 'yellow' ? 'ALERTA ESCARCHA' : 'HELADA SEVERA'}
-                    </span>
-                  </div>
-                  <div className="text-xs font-semibold text-dark mt-1">{frostRisk.title}</div>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">{frostRisk.advice}</p>
-                </div>
-              )}
-            </div>
-          </div>
         </>
       ) : (
-        <p className="text-center text-muted p-8">No se pudieron cargar los datos.</p>
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem' }}>
+          <p style={{ color: '#94a3b8' }}>No se pudieron cargar los datos meteorológicos.</p>
+        </div>
       )}
 
-      {/* Windy Interactive Radar Map */}
-      <div className="glass-panel">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-          <h2 className="text-base md:text-lg flex items-center gap-2">
-            <Wind size={20} className="text-primary-brand" /> Radar Interactivo de Viento y Lluvia (Windy)
+      {/* ═══ WINDY RADAR ═══ */}
+      <div className="glass-panel mb-6">
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+            <Radio size={18} style={{ color: '#22c55e' }} /> Radar Meteorológico
           </h2>
-          <span className="text-xs text-muted font-bold">Ubicación: {selectedCity.name}</span>
+          <span style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: 700 }}>{selectedCity.name}</span>
         </div>
         <div className="iframe-container">
           <iframe 
@@ -706,28 +754,36 @@ function App() {
         </div>
       </div>
 
-      {/* Styled Harmonious Glass Footer */}
-      <footer className="glass-panel app-footer mt-8 py-6 px-4 text-center flex flex-col items-center justify-center gap-3">
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-emerald-100/80 border border-emerald-300/60 flex items-center justify-center">
-            <Sprout size={18} className="text-primary-brand" />
+      {/* ═══ FOOTER ═══ */}
+      <footer className="glass-panel app-footer" style={{ padding: '1.5rem 1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ 
+            width: '28px', height: '28px', borderRadius: '8px', 
+            background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.1))',
+            border: '1px solid rgba(34,197,94,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <Sprout size={15} style={{ color: '#22c55e' }} />
           </div>
-          <span className="font-black text-dark text-lg tracking-tight">CheClima</span>
-          <span className="text-[10px] font-extrabold uppercase bg-emerald-700 text-white px-2 py-0.5 rounded-full tracking-wider">
-            Monitor Agro
-          </span>
+          <span style={{ fontWeight: 900, color: '#f1f5f9', fontSize: '1rem', letterSpacing: '-0.02em' }}>CheClima</span>
         </div>
 
-        <p className="text-xs md:text-sm text-dark font-semibold max-w-2xl leading-relaxed">
-          Creado por <strong className="text-emerald-950 font-black">Juan Francisco Natale</strong> mediante desarrollo por inteligencia artificial en conjunto con la API de <strong className="text-emerald-950 font-black">granos.ar</strong>
+        <p style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500, maxWidth: '480px', lineHeight: 1.6 }}>
+          Creado por <strong style={{ color: '#e2e8f0', fontWeight: 700 }}>Juan Francisco Natale</strong> mediante desarrollo por inteligencia artificial en conjunto con la API de <strong style={{ color: '#e2e8f0', fontWeight: 700 }}>granos.ar</strong>
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-2 mt-1 text-[11px] text-muted font-medium">
-          <span className="bg-glass-light px-2.5 py-1 rounded-full border border-glass">Necochea & Prov. de Buenos Aires</span>
-          <span>•</span>
-          <span className="bg-glass-light px-2.5 py-1 rounded-full border border-glass">Pronóstico 7 Días & Hora por Hora</span>
-          <span>•</span>
-          <span className="bg-glass-light px-2.5 py-1 rounded-full border border-glass">BPA & Labores Agrícolas</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.55rem', color: '#64748b', fontWeight: 600 }}>
+          <span style={{ background: 'rgba(30,41,59,0.5)', padding: '0.25rem 0.55rem', borderRadius: '99px', border: '1px solid rgba(148,163,184,0.1)' }}>
+            Open-Meteo API
+          </span>
+          <span>·</span>
+          <span style={{ background: 'rgba(30,41,59,0.5)', padding: '0.25rem 0.55rem', borderRadius: '99px', border: '1px solid rgba(148,163,184,0.1)' }}>
+            Pronóstico 7 Días
+          </span>
+          <span>·</span>
+          <span style={{ background: 'rgba(30,41,59,0.5)', padding: '0.25rem 0.55rem', borderRadius: '99px', border: '1px solid rgba(148,163,184,0.1)' }}>
+            BPA Agrícolas
+          </span>
         </div>
       </footer>
     </div>

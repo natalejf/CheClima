@@ -138,7 +138,7 @@ function App() {
               Fumiga-arg <span className="badge-beta">AGRO</span>
             </h1>
             <p className="text-xs md:text-sm text-dark font-medium mt-1">
-              Monitor de decisiones y ventanas operativas de pulverización para el productor agrícola
+              Monitor de decisiones para Pulverización, Siembra y Cosecha
             </p>
           </div>
         </div>
@@ -222,7 +222,7 @@ function App() {
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 glass-panel">
           <div className="loader mb-3"></div>
-          <p className="text-dark font-bold text-sm">Calculando ventanas operativas y cambios de viento para {selectedCity.name}...</p>
+          <p className="text-dark font-bold text-sm">Calculando ventanas operativas y condiciones para {selectedCity.name}...</p>
         </div>
       ) : current ? (
         <>
@@ -232,10 +232,10 @@ function App() {
               <div>
                 <div className="flex items-center gap-2">
                   <Sparkles size={16} className="text-primary-brand shrink-0" />
-                  <span className="text-xs text-dark font-extrabold uppercase tracking-wider">Panorama de Pulverización</span>
+                  <span className="text-xs text-dark font-extrabold uppercase tracking-wider">Panorama de Campo</span>
                 </div>
                 <h2 className="text-xl md:text-2xl font-black text-dark mt-1">
-                  {selectedCity.name}: ¿Conviene fumigar hoy? <span className="text-sm md:text-base font-bold text-muted">({getFormattedTodayDate()})</span>
+                  {selectedCity.name}: ¿Conviene fumigar/pulverizar hoy? <span className="text-sm md:text-base font-bold text-muted">({getFormattedTodayDate()})</span>
                 </h2>
               </div>
 
@@ -307,7 +307,7 @@ function App() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black uppercase text-amber-900 tracking-wider bg-amber-200 px-2.5 py-0.5 rounded-full border border-amber-300">
-                      🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR
+                      🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR / PULVERIZAR
                     </span>
                   </div>
                   <div className="text-lg md:text-xl font-black text-dark mt-1">
@@ -406,7 +406,7 @@ function App() {
                           {task === 'pulverizar' && <Wind size={16} />}
                           {task === 'sembrar' && <Sprout size={16} />}
                           {task === 'cosechar' && <Calendar size={16} />}
-                          {task}
+                          {task === 'pulverizar' ? 'Pulverizar / Fumigar' : task}
                         </span>
                         <span className={`status-badge badge-${rules.status}`}>
                           {rules.status === 'green' ? '100% OPERATIVO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO OPERATIVO'}
@@ -420,14 +420,14 @@ function App() {
             </div>
           </div>
 
-          {/* PLANIFICADOR SEMANAL EN TARJETAS DE PRONÓSTICO (7 DÍAS + 2 SLOTS AGRONÓMICOS DE VALOR) */}
+          {/* PLANIFICADOR SEMANAL EN TARJETAS DE PRONÓSTICO MULTI-TAREA (7 DÍAS + 2 SLOTS AGRONÓMICOS) */}
           <div className="glass-panel mb-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
               <div>
                 <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <Calendar size={20} className="text-primary-brand" /> Planificador Semanal de Pulverización (7 Días)
+                  <Calendar size={20} className="text-primary-brand" /> Planificador Semanal de Labores Agrícolas (7 Días)
                 </h2>
-                <p className="text-xs text-muted mt-0.5">Ventanas operativas de trabajo, motivos de inoperatividad y línea de cambios de viento</p>
+                <p className="text-xs text-muted mt-0.5">Evaluación diaria completa de Pulverización/Fumigación, Siembra y Cosecha</p>
               </div>
               <span className="text-xs font-bold text-dark bg-glass-light px-3 py-1 rounded-full border border-glass">
                 Necochea y Zona • 7 Días
@@ -435,7 +435,7 @@ function App() {
             </div>
 
             <div className="forecast-cards-grid">
-              {/* 7 Daily Forecast Cards */}
+              {/* 7 Daily Forecast Cards evaluating ALL 3 tasks */}
               {weeklyAnalysis?.days?.map((dayInfo, idx) => {
                 const dayName = getDayName(dayInfo.dateStr, idx);
                 const dateFormatted = formatDateShort(dayInfo.dateStr);
@@ -466,40 +466,62 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Operational Spray Window Badge */}
-                    <div className="card-operational-section mt-3">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1">
-                        Ventana Horaria Operativa
+                    {/* ALL 3 FIELD TASKS EVALUATION */}
+                    <div className="card-tasks-multi-section mt-3 flex flex-col gap-2">
+                      {/* Task 1: Pulverización / Fumigación */}
+                      <div className="task-row-item">
+                        <div className="flex items-center justify-between text-xs font-bold mb-1">
+                          <span className="flex items-center gap-1.5 text-dark">
+                            <Wind size={13} className="text-primary-brand shrink-0" />
+                            Pulverizar / Fumigar
+                          </span>
+                          <span className={`status-badge badge-${dayInfo.overallStatus}`}>
+                            {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
+                          </span>
+                        </div>
+                        {dayInfo.windows.length > 0 ? (
+                          <div className="text-[11px] font-black text-emerald-950 bg-emerald-100 p-1.5 rounded border border-emerald-300">
+                            Ventana: {dayInfo.windows.join(' | ')}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] font-bold text-rose-900 bg-rose-100 p-1.5 rounded border border-rose-300">
+                            Restricción: {dayInfo.nonOperationalReason}
+                          </div>
+                        )}
                       </div>
-                      
-                      {dayInfo.windows.length > 0 ? (
-                        <div className="operational-window-box window-active flex items-center gap-2">
-                          <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
-                          <span className="text-xs font-black text-emerald-950">
-                            {dayInfo.windows.join(' | ')}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="operational-window-box window-inactive flex items-center gap-2">
-                          <XCircle size={16} className="text-rose-700 shrink-0" />
-                          <span className="text-xs font-black text-rose-950">
-                            No Operativo para Pulverizar
-                          </span>
-                        </div>
-                      )}
-                    </div>
 
-                    {/* Non-Operational Reason (if restricted) */}
-                    {dayInfo.overallStatus !== 'green' && (
-                      <div className="card-reason-box mt-2">
-                        <div className="flex items-start gap-1.5 text-xs text-amber-900">
-                          <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-700" />
-                          <span className="leading-snug">
-                            <strong>Restricción:</strong> {dayInfo.nonOperationalReason}
+                      {/* Task 2: Siembra */}
+                      <div className="task-row-item pt-1 border-t border-glass">
+                        <div className="flex items-center justify-between text-xs font-bold mb-0.5">
+                          <span className="flex items-center gap-1.5 text-dark">
+                            <Sprout size={13} className="text-emerald-700 shrink-0" />
+                            Siembra
+                          </span>
+                          <span className={`status-badge badge-${dayInfo.sowEval.status}`}>
+                            {dayInfo.sowEval.label}
                           </span>
                         </div>
+                        <div className="text-[11px] text-muted font-medium">
+                          {dayInfo.sowEval.reason}
+                        </div>
                       </div>
-                    )}
+
+                      {/* Task 3: Cosecha / Trilla */}
+                      <div className="task-row-item pt-1 border-t border-glass">
+                        <div className="flex items-center justify-between text-xs font-bold mb-0.5">
+                          <span className="flex items-center gap-1.5 text-dark">
+                            <Calendar size={13} className="text-amber-700 shrink-0" />
+                            Cosecha / Trilla
+                          </span>
+                          <span className={`status-badge badge-${dayInfo.harvestEval.status}`}>
+                            {dayInfo.harvestEval.label}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted font-medium">
+                          {dayInfo.harvestEval.reason}
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Wind Shifts Timeline */}
                     <div className="card-wind-shifts mt-3 pt-3 border-t border-glass">

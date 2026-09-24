@@ -2,8 +2,8 @@ import { getWindDirectionName } from './weather';
 
 /**
  * Agricultural Rules & Operational Windows Engine
- * Evaluates weather conditions to calculate precise spraying windows, 
- * wind shift timelines, daily & hourly recommendations for farmers.
+ * Evaluates weather conditions for Pulverizar/Fumigar, Sembrar, and Cosechar,
+ * calculating precise operational windows, wind shift timelines, daily & hourly recommendations.
  */
 
 // General spraying thresholds
@@ -53,7 +53,7 @@ export const calculateDeltaT = (temp, hum) => {
 };
 
 /**
- * Evaluates general task conditions (no crop division).
+ * Evaluates general task conditions (Pulverizar/Fumigar, Sembrar, Cosechar).
  */
 export const evaluateConditions = (task, current) => {
   if (!current) return { status: 'yellow', message: 'Cargando datos...' };
@@ -95,6 +95,35 @@ export const evaluateConditions = (task, current) => {
 };
 
 /**
+ * Evaluates Daily Sow conditions.
+ */
+export const evaluateDailySow = (rainSum, minTemp) => {
+  if (rainSum > 5) {
+    return { status: 'red', label: 'No Apto', reason: `Lluvia acumulada (${rainSum} mm) causa encharcamiento.` };
+  }
+  if (minTemp < 10) {
+    return { status: 'yellow', label: 'Precaución', reason: `Temp fresca (${minTemp}°C), germinación lenta.` };
+  }
+  return { status: 'green', label: 'Apto', reason: 'Buenas condiciones para siembra.' };
+};
+
+/**
+ * Evaluates Daily Harvest conditions.
+ */
+export const evaluateDailyHarvest = (rainSum, maxHum) => {
+  if (rainSum > 0) {
+    return { status: 'red', label: 'No Apto', reason: `Lluvia prevista (${rainSum} mm). Imposible trillar.` };
+  }
+  if (maxHum > 75) {
+    return { status: 'red', label: 'No Apto', reason: `Humedad muy alta (${maxHum}%), grano húmedo.` };
+  }
+  if (maxHum > 65) {
+    return { status: 'yellow', label: 'Precaución', reason: `Humedad límite (${maxHum}%), vigilar secadora.` };
+  }
+  return { status: 'green', label: 'Apto', reason: 'Excelente secado de ambiente.' };
+};
+
+/**
  * Evaluates a single hour for spraying suitability.
  */
 export const evaluateHourlySpraying = (hourData) => {
@@ -126,7 +155,7 @@ export const evaluateHourlySpraying = (hourData) => {
 
 /**
  * Analyzes full week weather to generate optimal spray windows, 
- * wind shifts per day, and non-operational reasons.
+ * sow & harvest evaluations per day, and wind shift timelines.
  */
 export const analyzeWeeklySprayingWindows = (weatherData) => {
   if (!weatherData?.hourly || !weatherData?.daily) return null;
@@ -142,6 +171,8 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
 
     // Collect hours for this day
     const dayHours = [];
+    let maxHumOfDay = 0;
+
     for (let h = 0; h < hourly.time.length; h++) {
       const timeStr = hourly.time[h];
       if (timeStr.startsWith(dayDateStr)) {
@@ -152,6 +183,8 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
         const rain = hourly.precipitation[h];
         const windDir = hourly.wind_direction_10m ? hourly.wind_direction_10m[h] : 0;
         const hourNum = new Date(timeStr).getHours();
+
+        if (hum > maxHumOfDay) maxHumOfDay = hum;
 
         const evalResult = evaluateHourlySpraying({ temp, hum, wind, gusts, rain });
 
@@ -177,7 +210,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     const yellowHours = workDayHours.filter(item => item.eval.status === 'yellow');
     const redHours = workDayHours.filter(item => item.eval.status === 'red');
 
-    // Continuous operational windows
+    // Continuous operational windows for Pulverizar/Fumigar
     const windowsStrList = [];
     let currentWindow = [];
     workDayHours.forEach(item => {
@@ -224,7 +257,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       }
     ];
 
-    // Build non-operational reasons if applicable
+    // Build non-operational reasons for spraying
     const nonOpReasons = [];
     if (daily.precipitation_sum[d] > 0) {
       nonOpReasons.push(`Lluvia acumulada (${daily.precipitation_sum[d]} mm)`);
@@ -239,10 +272,6 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     if (deltaTReds.length > 0) {
       nonOpReasons.push(`Delta T crítico en ${deltaTReds.length} hs (Evaporación rápida)`);
     }
-    const inversionReds = workDayHours.filter(item => item.wind < 3);
-    if (inversionReds.length > 0) {
-      nonOpReasons.push(`Viento calmo (<3 km/h) en ${inversionReds.length} hs (Riesgo de Inversión Térmica)`);
-    }
 
     let overallStatus = 'green';
     if (greenHours.length >= 6) {
@@ -252,6 +281,10 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     } else {
       overallStatus = 'red';
     }
+
+    // Evaluate Sembrar & Cosechar for this day
+    const sowEval = evaluateDailySow(daily.precipitation_sum[d], daily.temperature_2m_min[d]);
+    const harvestEval = evaluateDailyHarvest(daily.precipitation_sum[d], maxHumOfDay);
 
     daysAnalysis.push({
       dayIndex: d,
@@ -267,6 +300,8 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       isOperational: windowsStrList.length > 0 && overallStatus !== 'red',
       nonOperationalReason: nonOpReasons.length > 0 ? nonOpReasons.join(' • ') : 'Condiciones estables sin impedimentos climáticos.',
       windShifts,
+      sowEval,
+      harvestEval,
       maxWind: daily.wind_speed_10m_max[d],
       maxGust: daily.wind_gusts_10m_max[d],
       rainSum: daily.precipitation_sum[d],
@@ -276,7 +311,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     });
   }
 
-  // Find the single Best Day of the Week (highest green hours, lowest rain)
+  // Find the single Best Day of the Week
   const sortedDays = [...daysAnalysis].sort((a, b) => {
     if (b.greenCount !== a.greenCount) return b.greenCount - a.greenCount;
     if (a.rainSum !== b.rainSum) return a.rainSum - b.rainSum;

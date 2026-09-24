@@ -723,11 +723,29 @@ function App() {
         </div>
       </div>
 
-      {/* Footer Credit */}
-      <footer className="mt-8 text-center text-xs md:text-sm text-dark font-medium opacity-90 py-4 border-t border-white/20">
-        <p>
-          Creado por <strong>Juan Francisco Natale</strong> mediante desarrollo por inteligencia artificial en conjunto con la API de <strong>granos.ar</strong>
+      {/* Styled Harmonious Glass Footer */}
+      <footer className="glass-panel app-footer mt-8 py-6 px-4 text-center flex flex-col items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-emerald-100/80 border border-emerald-300/60 flex items-center justify-center">
+            <Sprout size={18} className="text-primary-brand" />
+          </div>
+          <span className="font-black text-dark text-lg tracking-tight">CheClima</span>
+          <span className="text-[10px] font-extrabold uppercase bg-emerald-700 text-white px-2 py-0.5 rounded-full tracking-wider">
+            Monitor Agro
+          </span>
+        </div>
+
+        <p className="text-xs md:text-sm text-dark font-semibold max-w-2xl leading-relaxed">
+          Creado por <strong className="text-emerald-950 font-black">Juan Francisco Natale</strong> mediante desarrollo por inteligencia artificial en conjunto con la API de <strong className="text-emerald-950 font-black">granos.ar</strong>
         </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-1 text-[11px] text-muted font-medium">
+          <span className="bg-glass-light px-2.5 py-1 rounded-full border border-glass">Necochea & Prov. de Buenos Aires</span>
+          <span>•</span>
+          <span className="bg-glass-light px-2.5 py-1 rounded-full border border-glass">Pronóstico 7 Días & Hora por Hora</span>
+          <span>•</span>
+          <span className="bg-glass-light px-2.5 py-1 rounded-full border border-glass">BPA & Labores Agrícolas</span>
+        </div>
       </footer>
     </div>
   );

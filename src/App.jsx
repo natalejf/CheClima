@@ -5,7 +5,7 @@ import {
   Gauge, AlertTriangle, Truck, Snowflake, Sunrise, Sunset,
   Sun, Moon, Award, CheckCircle2, XCircle, AlertCircle, Play,
   Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles,
-  Activity, Zap, Eye, Radio
+  Activity, Zap, Eye, Radio, Filter
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
@@ -331,7 +331,22 @@ function App() {
                 </div>
 
                 {/* Labor Tabs for Panorama */}
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ 
+                    fontSize: '0.62rem', 
+                    fontWeight: 700, 
+                    color: 'var(--text-secondary)', 
+                    background: 'var(--bg-elevated)', 
+                    padding: '0.25rem 0.55rem', 
+                    borderRadius: '6px', 
+                    border: '1px solid rgba(148,163,184,0.15)', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.25rem',
+                    flexShrink: 0 
+                  }}>
+                    <Filter size={11} style={{ color: 'var(--accent)' }} /> Filtrar por labor:
+                  </span>
                   {[
                     { id: 'fumigar', label: 'Fumigar', icon: Wind, eval: currentSprayEval },
                     { id: 'sembrar', label: 'Sembrar', icon: Sprout, eval: currentSowEval },

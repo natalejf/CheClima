@@ -1001,35 +1001,44 @@ function App() {
       </div>
 
       {/* ═══ FOOTER ═══ */}
-      <footer className="glass-panel app-footer" style={{ padding: '1.5rem 1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+      <footer className="glass-panel app-footer" style={{ padding: '1.75rem 1.25rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <div style={{ 
-            width: '28px', height: '28px', borderRadius: '8px', 
+            width: '32px', height: '32px', borderRadius: '8px', 
             background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.1))',
             border: '1px solid rgba(34,197,94,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <Sprout size={15} style={{ color: 'var(--green)' }} />
+            <Sprout size={18} style={{ color: 'var(--green)' }} />
           </div>
-          <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '1rem', letterSpacing: '-0.02em' }}>CheClima</span>
+          <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '1.1rem', letterSpacing: '-0.02em' }}>CheClima</span>
         </div>
 
-        <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500, maxWidth: '480px', lineHeight: 1.6 }}>
-          Creado por <strong style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Juan Francisco Natale</strong> mediante desarrollo por inteligencia artificial en conjunto con la API de <strong style={{ color: 'var(--text-primary)', fontWeight: 700 }}>granos.ar</strong>
+        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, maxWidth: '540px', lineHeight: 1.6 }}>
+          Desarrollado por <strong style={{ color: 'var(--text-white)', fontWeight: 800 }}>Juan Francisco Natale</strong> en conjunto con <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>Granos.ar</strong>.
         </p>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-          <span style={{ background: 'var(--bg-elevated)', padding: '0.25rem 0.55rem', borderRadius: '99px', border: '1px solid rgba(148,163,184,0.1)' }}>
-            Open-Meteo API
+        <div style={{ 
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', 
+          gap: '0.5rem', fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 600,
+          background: 'var(--bg-elevated)', padding: '0.6rem 1rem', borderRadius: '12px',
+          border: '1px solid rgba(148,163,184,0.12)', maxWidth: '540px'
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
+            🌐 <strong>Fuente de Datos:</strong> Open-Meteo API (Modelos ECMWF / GFS)
           </span>
+          <span>•</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
+            🌱 <strong>Proyecto:</strong> Granos.ar
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '0.2rem' }}>
+          <span>Pronósticos meteorológicos agronómicos</span>
           <span>·</span>
-          <span style={{ background: 'var(--bg-elevated)', padding: '0.25rem 0.55rem', borderRadius: '99px', border: '1px solid rgba(148,163,184,0.1)' }}>
-            Pronóstico 7 Días
-          </span>
+          <span>Modelos BPA</span>
           <span>·</span>
-          <span style={{ background: 'var(--bg-elevated)', padding: '0.25rem 0.55rem', borderRadius: '99px', border: '1px solid rgba(148,163,184,0.1)' }}>
-            BPA Agrícolas
-          </span>
+          <span>© {new Date().getFullYear()} CheClima</span>
         </div>
       </footer>
     </div>

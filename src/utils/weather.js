@@ -33,15 +33,23 @@ export const searchCities = async (query) => {
   }
 };
 
+export const DEFAULT_CITY = {
+  name: "Necochea",
+  admin1: "Buenos Aires",
+  country: "Argentina",
+  lat: -38.5473,
+  lon: -58.7368
+};
+
 export const POPULAR_CITIES = [
+  { name: "Necochea", admin1: "Buenos Aires", country: "Argentina", lat: -38.5473, lon: -58.7368 },
   { name: "Pergamino", admin1: "Buenos Aires", country: "Argentina", lat: -33.89, lon: -60.57 },
   { name: "Rosario", admin1: "Santa Fe", country: "Argentina", lat: -32.95, lon: -60.64 },
   { name: "Tandil", admin1: "Buenos Aires", country: "Argentina", lat: -37.33, lon: -59.13 },
   { name: "Bahía Blanca", admin1: "Buenos Aires", country: "Argentina", lat: -38.72, lon: -62.27 },
   { name: "Junín", admin1: "Buenos Aires", country: "Argentina", lat: -34.58, lon: -60.95 },
-  { name: "Chivilcoy", admin1: "Buenos Aires", country: "Argentina", lat: -34.89, lon: -60.01 },
-  { name: "Trenque Lauquen", admin1: "Buenos Aires", country: "Argentina", lat: -35.97, lon: -62.73 },
-  { name: "Balcarce", admin1: "Buenos Aires", country: "Argentina", lat: -37.84, lon: -58.25 }
+  { name: "Balcarce", admin1: "Buenos Aires", country: "Argentina", lat: -37.84, lon: -58.25 },
+  { name: "Trenque Lauquen", admin1: "Buenos Aires", country: "Argentina", lat: -35.97, lon: -62.73 }
 ];
 
 export const getWindDirectionName = (degree) => {

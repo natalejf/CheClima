@@ -4,10 +4,10 @@ import {
   CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert,
   Gauge, AlertTriangle, Truck, Snowflake, Sunrise, Sunset,
   Sun, Award, CheckCircle2, XCircle, AlertCircle, Play,
-  ChevronRight, Compass, CloudSun, Eye
+  Compass, CloudSun, BarChart3, CheckSquare, Info
 } from 'lucide-react';
 import { 
-  fetchWeather, searchCities, POPULAR_CITIES, 
+  fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
   getWindDirectionName, getWeatherDescription,
   formatTimeHHMM, calculateDaylightDuration
 } from './utils/weather';
@@ -18,7 +18,7 @@ import {
 } from './utils/rules';
 
 function App() {
-  const [selectedCity, setSelectedCity] = useState(POPULAR_CITIES[0]); // Default Pergamino
+  const [selectedCity, setSelectedCity] = useState(DEFAULT_CITY); // Default Necochea
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -86,6 +86,11 @@ function App() {
   const todayAnalysis = weeklyAnalysis?.today;
   const bestDay = weeklyAnalysis?.bestDayOfWeek;
 
+  // Compute total weekly operational hours & rainfall
+  const totalWeeklyGreenHours = weeklyAnalysis?.days ? weeklyAnalysis.days.reduce((acc, d) => acc + d.greenCount, 0) : 0;
+  const totalWeeklyRainfall = daily?.precipitation_sum ? daily.precipitation_sum.reduce((acc, val) => acc + val, 0).toFixed(1) : 0;
+  const maxWeeklyGust = daily?.wind_gusts_10m_max ? Math.max(...daily.wind_gusts_10m_max) : 0;
+
   // Compute immediate spray status
   const currentSprayEval = current ? evaluateConditions('pulverizar', current) : null;
 
@@ -116,13 +121,13 @@ function App() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="brand flex items-center gap-3 w-full md:w-auto">
             <div className="brand-icon shrink-0">
-              <Sprout size={32} color="#3fb950" />
+              <Sprout size={32} className="text-primary-brand" />
             </div>
             <div>
               <h1 className="brand-title flex items-center gap-2 text-xl md:text-2xl">
                 Fumiga-arg <span className="badge-beta">AGRO</span>
               </h1>
-              <p className="text-xs text-muted">Monitor de ventanas de pulverización y clima de precisión</p>
+              <p className="text-xs text-muted">Monitor de decisiones y ventanas de pulverización para el campo</p>
             </div>
           </div>
 
@@ -164,7 +169,7 @@ function App() {
                     >
                       <MapPin size={16} className="text-muted shrink-0" />
                       <div>
-                        <span className="font-medium text-white">{item.name}</span>
+                        <span className="font-medium text-dark">{item.name}</span>
                         <span className="text-xs text-muted ml-2">
                           {[item.admin1, item.country].filter(Boolean).join(', ')}
                         </span>
@@ -179,9 +184,9 @@ function App() {
 
         {/* Selected City Info & Quick Cities */}
         <div className="mt-4 pt-4 border-t border-glass flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2 text-white font-semibold">
-            <MapPin size={20} color="var(--primary-hover)" className="shrink-0" />
-            <span className="text-lg">{selectedCity.name}</span>
+          <div className="flex items-center gap-2 text-dark font-bold">
+            <MapPin size={22} className="text-primary-brand shrink-0" />
+            <span className="text-xl">{selectedCity.name}</span>
             <span className="text-sm text-muted font-normal">
               {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
             </span>
@@ -215,7 +220,7 @@ function App() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass pb-4 mb-4">
               <div>
                 <span className="text-xs text-muted font-bold uppercase tracking-wider">Panorama de Pulverización</span>
-                <h2 className="text-xl md:text-2xl font-extrabold text-white mt-1">
+                <h2 className="text-xl md:text-2xl font-black text-dark mt-1">
                   {selectedCity.name}: ¿Conviene fumigar hoy?
                 </h2>
               </div>
@@ -226,48 +231,48 @@ function App() {
                 {currentSprayEval?.status === 'yellow' && <AlertCircle size={24} className="shrink-0" />}
                 {currentSprayEval?.status === 'red' && <XCircle size={24} className="shrink-0" />}
                 <div>
-                  <div className="text-xs font-bold uppercase">Estado Actual</div>
-                  <div className="text-sm md:text-base font-extrabold">
+                  <div className="text-xs font-bold uppercase tracking-wider">Estado Actual</div>
+                  <div className="text-sm md:text-base font-black">
                     {currentSprayEval?.status === 'green' ? '🟢 100% OPERATIVO AHORA' : currentSprayEval?.status === 'yellow' ? '🟡 OPERATIVO CON PRECAUCIÓN' : '🔴 NO OPERATIVO AHORA'}
                   </div>
                 </div>
               </div>
             </div>
 
-            <p className="text-xs md:text-sm text-muted mb-4 leading-relaxed">
-              <strong>Diagnóstico:</strong> {currentSprayEval?.message}
+            <p className="text-xs md:text-sm text-dark mb-4 leading-relaxed font-medium">
+              <strong>Diagnóstico en lote:</strong> {currentSprayEval?.message}
             </p>
 
             {/* Work Window & Sun Schedule */}
             <div className="panorama-details-grid">
-              {/* Ventana Horaria Sugerida */}
+              {/* Ventana Horaria Operativa */}
               <div className="panorama-box green-highlight">
-                <div className="flex items-center gap-2 mb-1 text-primary font-bold text-xs uppercase">
+                <div className="flex items-center gap-2 mb-1 text-primary-brand font-extrabold text-xs uppercase">
                   <Play size={16} /> Ventana Horaria Operativa Hoy
                 </div>
-                <div className="text-base md:text-lg font-black text-white">
-                  {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima'}
+                <div className="text-base md:text-lg font-black text-dark">
+                  {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima continua'}
                 </div>
                 <span className="text-xs text-muted mt-1">Horario apto para pulverizar/fumigar</span>
               </div>
 
               {/* Horarios de Luz Solar */}
-              <div className="panorama-box">
-                <div className="flex items-center gap-2 mb-1 text-yellow-400 font-bold text-xs uppercase">
+              <div className="panorama-box blue-highlight">
+                <div className="flex items-center gap-2 mb-1 text-blue-600 font-extrabold text-xs uppercase">
                   <Sun size={16} /> Salida y Puesta del Sol
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <div className="flex items-center gap-1 text-xs text-white">
-                    <Sunrise size={14} className="text-yellow-400 shrink-0" />
-                    <span>Salida: <strong>{formatTimeHHMM(todayAnalysis?.sunrise)} hs</strong></span>
+                <div className="flex items-center gap-4 mt-1">
+                  <div className="flex items-center gap-1 text-xs text-dark font-bold">
+                    <Sunrise size={16} className="text-amber-500 shrink-0" />
+                    <span>Salida: {formatTimeHHMM(todayAnalysis?.sunrise)} hs</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-white">
-                    <Sunset size={14} className="text-orange-400 shrink-0" />
-                    <span>Puesta: <strong>{formatTimeHHMM(todayAnalysis?.sunset)} hs</strong></span>
+                  <div className="flex items-center gap-1 text-xs text-dark font-bold">
+                    <Sunset size={16} className="text-orange-500 shrink-0" />
+                    <span>Puesta: {formatTimeHHMM(todayAnalysis?.sunset)} hs</span>
                   </div>
                 </div>
                 <div className="text-xs text-muted mt-1">
-                  Luz total: <strong>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
+                  Luz solar disponible: <strong>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
                 </div>
               </div>
             </div>
@@ -275,10 +280,10 @@ function App() {
             {/* Best Day Banner */}
             {bestDay && (
               <div className="best-day-banner mt-4">
-                <Award size={24} className="text-yellow-400 shrink-0" />
+                <Award size={26} className="text-amber-500 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold uppercase text-yellow-400 tracking-wider">🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR</div>
-                  <div className="text-sm md:text-base font-bold text-white">
+                  <div className="text-xs font-black uppercase text-amber-700 tracking-wider">🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR</div>
+                  <div className="text-sm md:text-base font-extrabold text-dark">
                     {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — {bestDay.greenCount} horas de ventana óptima
                   </div>
                   <div className="text-xs text-muted">
@@ -295,7 +300,7 @@ function App() {
             <div className="glass-panel weather-card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <Thermometer size={20} color="var(--primary-hover)" /> Clima Actual en {selectedCity.name}
+                  <Thermometer size={20} className="text-primary-brand" /> Clima Actual en {selectedCity.name}
                 </h2>
                 <span className="weather-badge">
                   {getWeatherDescription(current.weather_code)}
@@ -312,20 +317,20 @@ function App() {
                   {/* Wind Metric */}
                   <div className="metric-box highlighted">
                     <div className="flex items-center gap-2 mb-1">
-                      <Wind size={18} className="text-primary" />
+                      <Wind size={18} className="text-primary-brand" />
                       <span className="text-xs text-muted font-bold uppercase tracking-wider">Viento</span>
                     </div>
-                    <div className="text-xl font-bold text-white">
+                    <div className="text-xl font-black text-dark">
                       {current.wind_speed_10m} <span className="text-sm font-normal text-muted">km/h</span>
                     </div>
                     <div className="text-xs text-muted mt-1">
-                      Ráfagas: <strong className="text-white">{current.wind_gusts_10m} km/h</strong>
+                      Ráfagas: <strong className="text-dark">{current.wind_gusts_10m} km/h</strong>
                     </div>
                     <div className="wind-direction-pill mt-2 flex items-center gap-1-5">
                       <Navigation 
                         size={14} 
                         style={{ transform: `rotate(${current.wind_direction_10m}deg)` }} 
-                        className="shrink-0"
+                        className="shrink-0 text-primary-brand"
                       />
                       <span>Viento del <strong>{getWindDirectionName(current.wind_direction_10m)}</strong></span>
                       <span className="text-xs text-muted">({current.wind_direction_10m}°)</span>
@@ -335,20 +340,20 @@ function App() {
                   {/* Humidity Metric */}
                   <div className="metric-box">
                     <div className="flex items-center gap-2 mb-1">
-                      <Droplets size={18} className="text-blue" />
+                      <Droplets size={18} className="text-blue-500" />
                       <span className="text-xs text-muted font-bold uppercase tracking-wider">Humedad</span>
                     </div>
-                    <div className="text-xl font-bold text-white">{current.relative_humidity_2m}%</div>
+                    <div className="text-xl font-black text-dark">{current.relative_humidity_2m}%</div>
                     <span className="text-xs text-muted mt-1">Humedad relativa</span>
                   </div>
 
                   {/* Precipitation Metric */}
                   <div className="metric-box">
                     <div className="flex items-center gap-2 mb-1">
-                      <CloudRain size={18} className="text-blue" />
+                      <CloudRain size={18} className="text-blue-500" />
                       <span className="text-xs text-muted font-bold uppercase tracking-wider">Lluvia</span>
                     </div>
-                    <div className="text-xl font-bold text-white">{current.precipitation} <span className="text-sm font-normal text-muted">mm</span></div>
+                    <div className="text-xl font-black text-dark">{current.precipitation} <span className="text-sm font-normal text-muted">mm</span></div>
                     <span className="text-xs text-muted mt-1">Precipitación actual</span>
                   </div>
                 </div>
@@ -359,9 +364,9 @@ function App() {
             <div className="glass-panel tasks-card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <ShieldAlert size={20} color="var(--primary-hover)" /> Semáforo de Labores
+                  <ShieldAlert size={20} className="text-primary-brand" /> Semáforo de Labores
                 </h2>
-                <span className="text-xs text-muted">Evaluación agronómica</span>
+                <span className="text-xs text-muted font-medium">Evaluación de campo</span>
               </div>
 
               <div className="tasks-grid">
@@ -370,7 +375,7 @@ function App() {
                   return (
                     <div key={task} className={`state-card state-border-${rules.status}`}>
                       <div className="state-header">
-                        <span className="font-bold capitalize text-white flex items-center gap-2">
+                        <span className="font-extrabold capitalize text-dark flex items-center gap-2 text-sm">
                           {task === 'pulverizar' && <Wind size={16} />}
                           {task === 'sembrar' && <Sprout size={16} />}
                           {task === 'cosechar' && <Calendar size={16} />}
@@ -388,21 +393,22 @@ function App() {
             </div>
           </div>
 
-          {/* PLANIFICADOR SEMANAL EN TARJETAS DE PRONÓSTICO (7 DÍAS) */}
+          {/* PLANIFICADOR SEMANAL EN TARJETAS DE PRONÓSTICO (7 DÍAS + 2 SLOTS AGRONÓMICOS DE VALOR) */}
           <div className="glass-panel mb-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
               <div>
                 <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <Calendar size={20} color="var(--primary-hover)" /> Planificador Semanal de Pulverización (7 Días)
+                  <Calendar size={20} className="text-primary-brand" /> Planificador Semanal de Pulverización (7 Días)
                 </h2>
                 <p className="text-xs text-muted mt-0.5">Ventanas operativas de trabajo, motivos de inoperatividad y línea de cambios de viento</p>
               </div>
-              <span className="text-xs text-muted font-medium bg-glass px-2.5 py-1 rounded-full border border-glass">
-                7 Días Detallados
+              <span className="text-xs font-bold text-dark bg-glass-light px-3 py-1 rounded-full border border-glass">
+                Necochea y Zona • 7 Días
               </span>
             </div>
 
             <div className="forecast-cards-grid">
+              {/* 7 Daily Forecast Cards */}
               {weeklyAnalysis?.days?.map((dayInfo, idx) => {
                 const dayName = getDayName(dayInfo.dateStr, idx);
                 const dateFormatted = formatDateShort(dayInfo.dateStr);
@@ -416,20 +422,20 @@ function App() {
                     <div className="card-top-header">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-white text-base">{dayName}</span>
-                          <span className="text-xs text-muted font-medium">{dateFormatted}</span>
+                          <span className="font-black text-dark text-base">{dayName}</span>
+                          <span className="text-xs text-muted font-bold">{dateFormatted}</span>
                           {idx === 0 && <span className="today-badge">HOY</span>}
                         </div>
-                        <span className="text-xs text-muted flex items-center gap-1 mt-0.5">
-                          <CloudSun size={12} className="text-muted" />
+                        <span className="text-xs text-muted flex items-center gap-1 mt-0.5 font-medium">
+                          <CloudSun size={13} className="text-muted" />
                           {getWeatherDescription(dayInfo.weatherCode)}
                         </span>
                       </div>
 
                       {/* Temperature Range Pill */}
                       <div className="card-temp-pill">
-                        <span className="font-bold text-white">{Math.round(dayInfo.maxTemp)}°</span>
-                        <span className="text-muted text-xs">/ {Math.round(dayInfo.minTemp)}°</span>
+                        <span className="font-black text-dark">{Math.round(dayInfo.maxTemp)}°</span>
+                        <span className="text-muted text-xs font-bold">/ {Math.round(dayInfo.minTemp)}°</span>
                       </div>
                     </div>
 
@@ -441,28 +447,28 @@ function App() {
                       
                       {dayInfo.windows.length > 0 ? (
                         <div className="operational-window-box window-active flex items-center gap-2">
-                          <CheckCircle2 size={16} className="text-primary shrink-0" />
-                          <span className="text-xs font-bold text-white">
+                          <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
+                          <span className="text-xs font-black text-emerald-950">
                             {dayInfo.windows.join(' | ')}
                           </span>
                         </div>
                       ) : (
                         <div className="operational-window-box window-inactive flex items-center gap-2">
-                          <XCircle size={16} className="text-red-400 shrink-0" />
-                          <span className="text-xs font-bold text-red-300">
+                          <XCircle size={16} className="text-rose-700 shrink-0" />
+                          <span className="text-xs font-black text-rose-950">
                             No Operativo para Pulverizar
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Non-Operational Reason (if applicable) */}
+                    {/* Non-Operational Reason (if restricted) */}
                     {dayInfo.overallStatus !== 'green' && (
                       <div className="card-reason-box mt-2">
-                        <div className="flex items-start gap-1.5 text-xs text-yellow-300">
-                          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-1.5 text-xs text-amber-900">
+                          <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-700" />
                           <span className="leading-snug">
-                            <strong>Motivo de restricción:</strong> {dayInfo.nonOperationalReason}
+                            <strong>Restricción:</strong> {dayInfo.nonOperationalReason}
                           </span>
                         </div>
                       </div>
@@ -471,14 +477,14 @@ function App() {
                     {/* Wind Shifts Timeline */}
                     <div className="card-wind-shifts mt-3 pt-3 border-t border-glass">
                       <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1">
-                        <Compass size={13} className="text-primary" /> Cambios del Viento en el Día
+                        <Compass size={13} className="text-primary-brand" /> Cambios del Viento en el Día
                       </div>
 
                       <div className="wind-shifts-grid">
                         {dayInfo.windShifts.map((shift, sIdx) => (
                           <div key={sIdx} className="wind-shift-item">
-                            <span className="text-[10px] text-muted uppercase font-semibold">{shift.period.split(' ')[0]}</span>
-                            <span className="text-xs font-bold text-white flex items-center gap-1">
+                            <span className="text-[10px] text-muted uppercase font-bold">{shift.period.split(' ')[0]}</span>
+                            <span className="text-xs font-black text-dark flex items-center gap-1">
                               <Navigation size={10} className="text-muted" style={{ transform: 'rotate(0deg)' }} />
                               {shift.dir} {shift.speed} <span className="text-[10px] font-normal text-muted">km/h</span>
                             </span>
@@ -488,19 +494,19 @@ function App() {
                     </div>
 
                     {/* Footer: Sun & Rain Metrics */}
-                    <div className="card-footer-metrics mt-3 pt-2 border-t border-glass flex items-center justify-between text-xs text-muted">
+                    <div className="card-footer-metrics mt-3 pt-2 border-t border-glass flex items-center justify-between text-xs text-muted font-medium">
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 text-[11px]">
-                          <Sunrise size={12} className="text-yellow-400 shrink-0" /> {formatTimeHHMM(dayInfo.sunrise)}
+                          <Sunrise size={12} className="text-amber-500 shrink-0" /> {formatTimeHHMM(dayInfo.sunrise)}
                         </span>
                         <span className="flex items-center gap-1 text-[11px]">
-                          <Sunset size={12} className="text-orange-400 shrink-0" /> {formatTimeHHMM(dayInfo.sunset)}
+                          <Sunset size={12} className="text-orange-500 shrink-0" /> {formatTimeHHMM(dayInfo.sunset)}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {dayInfo.rainSum > 0 ? (
-                          <span className="flex items-center gap-1 text-blue text-[11px] font-bold">
+                          <span className="flex items-center gap-1 text-blue-700 text-[11px] font-black">
                             <CloudRain size={12} /> {dayInfo.rainSum} mm
                           </span>
                         ) : (
@@ -511,6 +517,60 @@ function App() {
                   </div>
                 );
               })}
+
+              {/* Slot 8: Resumen Estadístico Semanal de Campo */}
+              <div className="forecast-day-card summary-card-slot">
+                <div className="card-top-header mb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 size={20} className="text-primary-brand shrink-0" />
+                    <span className="font-black text-dark text-base">Resumen Semanal</span>
+                  </div>
+                  <span className="weather-badge">7 Días</span>
+                </div>
+
+                <p className="text-xs text-muted mb-3 leading-relaxed">
+                  Consolidado meteorológico acumulado para la planificación de tareas en Necochea.
+                </p>
+
+                <div className="summary-stats-grid">
+                  <div className="summary-stat-box">
+                    <span className="text-[11px] text-muted font-bold">Horas Operativas Totales</span>
+                    <span className="text-lg font-black text-emerald-700">{totalWeeklyGreenHours} hs</span>
+                  </div>
+
+                  <div className="summary-stat-box">
+                    <span className="text-[11px] text-muted font-bold">Lluvia Acumulada</span>
+                    <span className="text-lg font-black text-blue-700">{totalWeeklyRainfall} mm</span>
+                  </div>
+
+                  <div className="summary-stat-box">
+                    <span className="text-[11px] text-muted font-bold">Ráfaga Máxima Semanal</span>
+                    <span className="text-lg font-black text-amber-700">{maxWeeklyGust} km/h</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slot 9: Buenas Prácticas Agrícolas (BPA) */}
+              <div className="forecast-day-card summary-card-slot">
+                <div className="card-top-header mb-2">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare size={20} className="text-primary-brand shrink-0" />
+                    <span className="font-black text-dark text-base">Guía BPA Pulverización</span>
+                  </div>
+                  <span className="today-badge">BPA</span>
+                </div>
+
+                <p className="text-xs text-muted mb-2 leading-relaxed">
+                  Reglas recomendadas para optimizar la eficiencia de los agroquímicos en lote:
+                </p>
+
+                <ul className="bpa-checklist text-xs text-dark">
+                  <li>🟢 <strong>Viento óptimo:</strong> 3 a 15 km/h (evita deriva e inversión).</li>
+                  <li>🟢 <strong>Delta T ideal:</strong> 2°C a 8°C (evita evaporación rápida).</li>
+                  <li>🟡 <strong>Ráfagas &gt; 15 km/h:</strong> Usar pastillas antideriva / aire.</li>
+                  <li>🔴 <strong>Temp &gt; 30°C / Delta T &gt; 10°C:</strong> Suspender aplicaciones.</li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -518,7 +578,7 @@ function App() {
           <div className="glass-panel mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="flex items-center gap-2 text-base md:text-lg">
-                <Gauge size={20} color="var(--primary-hover)" /> Monitores de Parámetros de Aplicación
+                <Gauge size={20} className="text-primary-brand" /> Monitores de Parámetros de Aplicación
               </h2>
               <span className="text-xs text-muted hidden sm:inline">Delta T, Inversión, Piso y Heladas</span>
             </div>
@@ -529,14 +589,14 @@ function App() {
                 <div className={`insight-card insight-border-${deltaT.status}`}>
                   <div className="insight-header">
                     <div className="flex items-center gap-2">
-                      <Gauge size={18} className="text-primary" />
-                      <span className="font-bold text-white text-sm">Delta T (Evaporación)</span>
+                      <Gauge size={18} className="text-primary-brand" />
+                      <span className="font-bold text-dark text-sm">Delta T (Evaporación)</span>
                     </div>
                     <span className={`status-badge badge-${deltaT.status}`}>
                       {deltaT.deltaT} °C
                     </span>
                   </div>
-                  <div className="text-xs font-semibold text-white mt-1">Zona: {deltaT.zone}</div>
+                  <div className="text-xs font-semibold text-dark mt-1">Zona: {deltaT.zone}</div>
                   <p className="text-xs text-muted mt-1 leading-relaxed">{deltaT.advice}</p>
                 </div>
               )}
@@ -546,14 +606,14 @@ function App() {
                 <div className={`insight-card insight-border-${thermalInversion.status}`}>
                   <div className="insight-header">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle size={18} className="text-yellow-400" />
-                      <span className="font-bold text-white text-sm">Inversión Térmica</span>
+                      <AlertTriangle size={18} className="text-amber-600" />
+                      <span className="font-bold text-dark text-sm">Inversión Térmica</span>
                     </div>
                     <span className={`status-badge badge-${thermalInversion.status}`}>
                       {thermalInversion.status === 'green' ? 'BAJO RIESGO' : thermalInversion.status === 'yellow' ? 'MODERADO' : 'ALTO RIESGO'}
                     </span>
                   </div>
-                  <div className="text-xs font-semibold text-white mt-1">{thermalInversion.title}</div>
+                  <div className="text-xs font-semibold text-dark mt-1">{thermalInversion.title}</div>
                   <p className="text-xs text-muted mt-1 leading-relaxed">{thermalInversion.advice}</p>
                 </div>
               )}
@@ -563,14 +623,14 @@ function App() {
                 <div className={`insight-card insight-border-${soilTraffic.status}`}>
                   <div className="insight-header">
                     <div className="flex items-center gap-2">
-                      <Truck size={18} className="text-blue" />
-                      <span className="font-bold text-white text-sm">Piso en Lote</span>
+                      <Truck size={18} className="text-blue-600" />
+                      <span className="font-bold text-dark text-sm">Piso en Lote</span>
                     </div>
                     <span className={`status-badge badge-${soilTraffic.status}`}>
                       {soilTraffic.status === 'green' ? 'TRANSITABLE' : soilTraffic.status === 'yellow' ? 'PRECAUCIÓN' : 'BARRO'}
                     </span>
                   </div>
-                  <div className="text-xs font-semibold text-white mt-1">{soilTraffic.title}</div>
+                  <div className="text-xs font-semibold text-dark mt-1">{soilTraffic.title}</div>
                   <p className="text-xs text-muted mt-1 leading-relaxed">{soilTraffic.advice}</p>
                 </div>
               )}
@@ -580,14 +640,14 @@ function App() {
                 <div className={`insight-card insight-border-${frostRisk.status}`}>
                   <div className="insight-header">
                     <div className="flex items-center gap-2">
-                      <Snowflake size={18} className="text-blue" />
-                      <span className="font-bold text-white text-sm">Riesgo de Heladas</span>
+                      <Snowflake size={18} className="text-blue-600" />
+                      <span className="font-bold text-dark text-sm">Riesgo de Heladas</span>
                     </div>
                     <span className={`status-badge badge-${frostRisk.status}`}>
                       {frostRisk.status === 'green' ? 'SIN HELADAS' : frostRisk.status === 'yellow' ? 'ALERTA ESCARCHA' : 'HELADA SEVERA'}
                     </span>
                   </div>
-                  <div className="text-xs font-semibold text-white mt-1">{frostRisk.title}</div>
+                  <div className="text-xs font-semibold text-dark mt-1">{frostRisk.title}</div>
                   <p className="text-xs text-muted mt-1 leading-relaxed">{frostRisk.advice}</p>
                 </div>
               )}
@@ -602,9 +662,9 @@ function App() {
       <div className="glass-panel">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
           <h2 className="text-base md:text-lg flex items-center gap-2">
-            <Wind size={20} color="var(--primary-hover)" /> Radar Interactivo de Viento y Lluvia (Windy)
+            <Wind size={20} className="text-primary-brand" /> Radar Interactivo de Viento y Lluvia (Windy)
           </h2>
-          <span className="text-xs text-muted">Ubicación: {selectedCity.name}</span>
+          <span className="text-xs text-muted font-bold">Ubicación: {selectedCity.name}</span>
         </div>
         <div className="iframe-container">
           <iframe 

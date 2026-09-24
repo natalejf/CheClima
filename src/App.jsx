@@ -1015,7 +1015,7 @@ function App() {
         </div>
 
         <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, maxWidth: '540px', lineHeight: 1.6 }}>
-          Desarrollado por <strong style={{ color: 'var(--text-white)', fontWeight: 800 }}>Juan Francisco Natale</strong> en conjunto con <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>Granos.ar</strong>.
+          Desarrollado por <strong style={{ color: 'var(--text-white)', fontWeight: 800 }}>Juan Francisco Natale</strong>.
         </p>
 
         <div style={{ 
@@ -1029,7 +1029,7 @@ function App() {
           </span>
           <span>•</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
-            🌱 <strong>Proyecto:</strong> Granos.ar
+            🌱 <strong>Herramientas Agronómicas</strong>
           </span>
         </div>
 

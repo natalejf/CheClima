@@ -19,7 +19,7 @@ import {
 
 function App() {
   const [selectedCity, setSelectedCity] = useState(DEFAULT_CITY); // Default Necochea
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('Necochea');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -127,29 +127,25 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Centered Header & Search Bar */}
-      <header className="app-header glass-panel mb-6 flex flex-col items-center text-center">
-        <div className="brand flex flex-col items-center gap-2 mb-4">
-          <div className="brand-icon">
-            <Sprout size={40} className="text-primary-brand" />
-          </div>
-          <div>
-            <h1 className="brand-title flex items-center justify-center gap-2 text-2xl md:text-3xl font-black">
-              CheClima
-            </h1>
-            <p className="text-xs md:text-sm text-dark font-medium mt-1">
-              Monitor de decisiones para Fumigar, Pulverizar, Sembrar y Cosechar
-            </p>
-          </div>
+      {/* Minimalist Hero Search Header */}
+      <header className="app-header glass-panel mb-6 py-6 px-4 md:px-8 text-center flex flex-col items-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Sprout size={32} className="text-primary-brand" />
+          <h1 className="brand-title text-3xl md:text-4xl font-black text-dark tracking-tight">
+            CheClima
+          </h1>
         </div>
+        <p className="text-xs md:text-sm text-muted font-medium mb-5">
+          Monitor de campo para Fumigación, Pulverización, Siembra y Cosecha
+        </p>
 
-        {/* Centered Search Box */}
+        {/* Minimalist Centered Search Box with Necochea Preset */}
         <div className="search-wrapper w-full max-w-xl mx-auto" ref={searchContainerRef}>
-          <div className="search-input-box">
-            <Search size={20} className="search-icon" />
+          <div className="search-input-box shadow-md rounded-2xl">
+            <Search size={20} className="search-icon text-muted" />
             <input
               type="text"
-              placeholder="Buscar cualquier ciudad o localidad (ej. Necochea, Balcarce, Pergamino)..."
+              placeholder="Buscar localidad (ej. Necochea, Balcarce, Pergamino)..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -177,7 +173,10 @@ function App() {
                   <div 
                     key={idx} 
                     className="search-item"
-                    onClick={() => handleSelectCity(item)}
+                    onClick={() => {
+                      handleSelectCity(item);
+                      setSearchQuery(item.name);
+                    }}
                   >
                     <MapPin size={16} className="text-muted shrink-0" />
                     <div>
@@ -193,29 +192,13 @@ function App() {
           )}
         </div>
 
-        {/* Selected City Info & Quick Cities Centered */}
-        <div className="mt-4 pt-4 border-t border-glass w-full flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center gap-2 text-dark font-black">
-            <MapPin size={22} className="text-primary-brand shrink-0" />
-            <span className="text-xl md:text-2xl">{selectedCity.name}</span>
-            <span className="text-sm text-muted font-bold">
-              {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
-            </span>
-          </div>
-
-          {/* Popular City Quick Buttons Centered */}
-          <div className="popular-cities flex flex-wrap items-center justify-center gap-1-5">
-            <span className="text-xs text-muted font-bold mr-1">Localidades:</span>
-            {POPULAR_CITIES.map((c, i) => (
-              <button
-                key={i}
-                className={`chip-btn ${selectedCity.name === c.name ? 'active' : ''}`}
-                onClick={() => handleSelectCity(c)}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
+        {/* Selected Location Pill */}
+        <div className="mt-4 flex items-center justify-center gap-2 text-dark font-black text-sm md:text-base">
+          <MapPin size={18} className="text-primary-brand shrink-0" />
+          <span>Localidad seleccionada: <strong>{selectedCity.name}</strong></span>
+          <span className="text-xs text-muted font-bold">
+            ({[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')})
+          </span>
         </div>
       </header>
 

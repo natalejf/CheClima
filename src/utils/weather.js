@@ -1,5 +1,5 @@
 export const fetchWeather = async (lat, lon) => {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=7`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=7`;
   
   try {
     const response = await fetch(url);
@@ -73,3 +73,22 @@ export const getWeatherDescription = (code) => {
   }
 };
 
+export const formatTimeHHMM = (isoString) => {
+  if (!isoString) return '--:--';
+  const date = new Date(isoString);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+export const calculateDaylightDuration = (sunriseIso, sunsetIso) => {
+  if (!sunriseIso || !sunsetIso) return null;
+  const start = new Date(sunriseIso);
+  const end = new Date(sunsetIso);
+  const diffMs = end - start;
+  if (diffMs <= 0) return null;
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return `${hours}h ${mins}m`;
+};

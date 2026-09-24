@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
   --primary: #2ea043;
   --primary-hover: #3fb950;
   --bg-dark: #0b0f17;
-  --bg-panel: rgba(22, 27, 34, 0.75);
+  --bg-panel: rgba(22, 27, 34, 0.8);
   --border: rgba(48, 54, 61, 0.6);
   --border-light: rgba(255, 255, 255, 0.1);
   --text-primary: #c9d1d9;
@@ -39,7 +39,7 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(46, 160, 67, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 50% 0%, rgba(46, 160, 67, 0.15) 0%, transparent 60%),
     radial-gradient(circle at 90% 80%, rgba(56, 139, 253, 0.08) 0%, transparent 50%);
   background-attachment: fixed;
 }
@@ -49,7 +49,7 @@ body {
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.85rem;
   padding-bottom: 4rem;
   overflow-x: hidden;
 }
@@ -106,6 +106,130 @@ h1, h2, h3, h4 {
   border-radius: 99px;
   -webkit-text-fill-color: var(--primary-hover);
 }
+
+/* HERO PANORAMA CARD */
+.hero-panorama-card {
+  background: linear-gradient(180deg, rgba(22, 27, 34, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%);
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+
+.spray-now-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-radius: 14px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .spray-now-badge {
+    width: auto;
+  }
+}
+
+.badge-hero-green {
+  background: rgba(35, 134, 54, 0.25);
+  border: 1px solid var(--status-green);
+  color: #3fb950;
+  box-shadow: 0 0 16px var(--status-green-glow);
+}
+
+.badge-hero-yellow {
+  background: rgba(210, 153, 34, 0.25);
+  border: 1px solid var(--status-yellow);
+  color: #d29922;
+  box-shadow: 0 0 16px var(--status-yellow-glow);
+}
+
+.badge-hero-red {
+  background: rgba(218, 54, 51, 0.25);
+  border: 1px solid var(--status-red);
+  color: #ff7b72;
+  box-shadow: 0 0 16px var(--status-red-glow);
+}
+
+.panorama-details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .panorama-details-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.panorama-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.panorama-box.green-highlight {
+  background: rgba(46, 160, 67, 0.08);
+  border-color: rgba(46, 160, 67, 0.25);
+}
+
+.panorama-box.red-highlight {
+  background: rgba(218, 54, 51, 0.08);
+  border-color: rgba(218, 54, 51, 0.25);
+}
+
+/* BEST DAY BANNER */
+.best-day-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: linear-gradient(135deg, rgba(210, 153, 34, 0.15) 0%, rgba(46, 160, 67, 0.1) 100%);
+  border: 1px solid rgba(210, 153, 34, 0.4);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+/* WEEKLY SCHEDULE LIST (7 DÍAS) */
+.weekly-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.weekly-day-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.weekly-day-card.today-highlight {
+  border-color: var(--primary-hover);
+  background: rgba(46, 160, 67, 0.06);
+}
+
+.weekly-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.today-chip {
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.day-status-green { border-left: 4px solid var(--status-green); }
+.day-status-yellow { border-left: 4px solid var(--status-yellow); }
+.day-status-red { border-left: 4px solid var(--status-red); }
 
 /* Header & Search Bar */
 .search-wrapper {
@@ -316,19 +440,6 @@ h1, h2, h3, h4 {
   width: fit-content;
 }
 
-/* Crop Selector */
-.crop-select {
-  background: rgba(13, 17, 23, 0.9);
-  color: #fff;
-  border: 1px solid var(--border);
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 0.75rem;
-  outline: none;
-  cursor: pointer;
-}
-
 /* Task Semaphore Cards */
 .tasks-grid {
   display: flex;
@@ -366,6 +477,17 @@ h1, h2, h3, h4 {
 .badge-yellow { background: var(--status-yellow); color: #111; box-shadow: 0 0 10px var(--status-yellow-glow); }
 .badge-red { background: var(--status-red); color: #fff; box-shadow: 0 0 10px var(--status-red-glow); }
 
+/* Status Dots */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-green { background-color: var(--status-green); box-shadow: 0 0 6px var(--status-green-glow); }
+.status-yellow { background-color: var(--status-yellow); box-shadow: 0 0 6px var(--status-yellow-glow); }
+.status-red { background-color: var(--status-red); box-shadow: 0 0 6px var(--status-red-glow); }
+
 /* Advanced Agronomic Insights Grid */
 .insights-grid {
   display: grid;
@@ -399,69 +521,7 @@ h1, h2, h3, h4 {
   margin-bottom: 0.4rem;
 }
 
-/* Daily 7-day Forecast Grid */
-.daily-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-@media (min-width: 480px) {
-  .daily-grid {
-    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-  }
-}
-
-.daily-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  padding: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.daily-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.daily-card.today-highlight {
-  background: linear-gradient(180deg, rgba(46, 160, 67, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border-color: rgba(46, 160, 67, 0.3);
-}
-
-.daily-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.daily-temps {
-  display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  font-size: 1.15rem;
-}
-.temp-divider { color: var(--text-secondary); font-size: 0.85rem; }
-
-.daily-info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-top: auto;
-  padding-top: 0.5rem;
-  border-top: 1px dashed rgba(255, 255, 255, 0.08);
-}
-
-.daily-info-item {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-/* Hourly Forecast Scrollable Bar */
+/* Hourly Forecast Scrollable Bar with Spray Alerts */
 .hourly-scroll {
   display: flex;
   overflow-x: auto;
@@ -476,7 +536,7 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 85px;
+  min-width: 95px;
   padding: 0.75rem 0.5rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 14px;
@@ -489,6 +549,23 @@ h1, h2, h3, h4 {
   background: rgba(46, 160, 67, 0.15);
   border-color: var(--primary-hover);
 }
+
+.hourly-status-green { border-bottom: 3px solid var(--status-green); }
+.hourly-status-yellow { border-bottom: 3px solid var(--status-yellow); }
+.hourly-status-red { border-bottom: 3px solid var(--status-red); }
+
+.hourly-alert-chip {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  margin-top: 0.2rem;
+}
+
+.alert-chip-green { background: rgba(35, 134, 54, 0.3); color: #3fb950; border: 1px solid var(--status-green); }
+.alert-chip-yellow { background: rgba(210, 153, 34, 0.3); color: #d29922; border: 1px solid var(--status-yellow); }
+.alert-chip-red { background: rgba(218, 54, 51, 0.3); color: #ff7b72; border: 1px solid var(--status-red); }
 
 .hourly-temp {
   font-size: 1.1rem;
@@ -532,6 +609,8 @@ h1, h2, h3, h4 {
 .text-muted { color: var(--text-secondary); }
 .font-medium { font-weight: 500; }
 .font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.font-black { font-weight: 900; }
 .text-center { text-align: center; }
 .text-primary { color: var(--primary-hover); }
 .text-blue { color: #58a6ff; }
@@ -563,6 +642,7 @@ h1, h2, h3, h4 {
 .my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
 .p-3 { padding: 0.75rem; }
 .p-8 { padding: 2rem; }
+.pb-4 { padding-bottom: 1rem; }
 .pt-4 { padding-top: 1rem; }
 .w-full { width: 100%; }
 

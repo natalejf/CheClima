@@ -2,16 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wind, Droplets, MapPin, Navigation, Thermometer, 
   CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert,
-  Gauge, AlertTriangle, Truck, Snowflake, Info
+  Gauge, AlertTriangle, Truck, Snowflake, Sunrise, Sunset,
+  Sun, Moon, Award, CheckCircle2, XCircle, AlertCircle, Play, Square
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, 
-  getWindDirectionName, getWeatherDescription 
+  getWindDirectionName, getWeatherDescription,
+  formatTimeHHMM, calculateDaylightDuration
 } from './utils/weather';
 import { 
   evaluateConditions, calculateDeltaT, 
   evaluateThermalInversion, evaluateSoilTrafficability, 
-  evaluateFrostRisk 
+  evaluateFrostRisk, analyzeWeeklySprayingWindows
 } from './utils/rules';
 
 function App() {
@@ -23,7 +25,6 @@ function App() {
   
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCrop, setSelectedCrop] = useState('Soja');
 
   const searchContainerRef = useRef(null);
 
@@ -80,11 +81,13 @@ function App() {
   const hourly = weatherData?.hourly;
   const daily = weatherData?.daily;
 
-  // Compute operational insights
-  const deltaT = current ? calculateDeltaT(current.temperature_2m, current.relative_humidity_2m) : null;
-  const thermalInversion = current ? evaluateThermalInversion(current.wind_speed_10m, current.cloud_cover) : null;
-  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m) : null;
-  const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
+  // Perform weekly and daily operational analysis
+  const weeklyAnalysis = weatherData ? analyzeWeeklySprayingWindows(weatherData) : null;
+  const todayAnalysis = weeklyAnalysis?.today;
+  const bestDay = weeklyAnalysis?.bestDayOfWeek;
+
+  // Compute immediate spray status
+  const currentSprayEval = current ? evaluateConditions('pulverizar', current) : null;
 
   // Format dates for daily forecast
   const getDayName = (dateStr, index) => {
@@ -100,6 +103,12 @@ function App() {
     return `${date.getDate()}/${date.getMonth() + 1}`;
   };
 
+  // Compute operational insights
+  const deltaT = current ? calculateDeltaT(current.temperature_2m, current.relative_humidity_2m) : null;
+  const thermalInversion = current ? evaluateThermalInversion(current.wind_speed_10m) : null;
+  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m) : null;
+  const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
+
   return (
     <div className="app-container">
       {/* Header & City Search Bar */}
@@ -113,7 +122,7 @@ function App() {
               <h1 className="brand-title flex items-center gap-2 text-xl md:text-2xl">
                 Fumiga-arg <span className="badge-beta">AGRO</span>
               </h1>
-              <p className="text-xs text-muted">Monitor climático y operativo para el campo</p>
+              <p className="text-xs text-muted">Monitor de decisiones y ventanas de pulverización</p>
             </div>
           </div>
 
@@ -179,7 +188,7 @@ function App() {
           </div>
 
           {/* Popular City Quick Buttons */}
-          <div className="popular-cities flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+          <div className="popular-cities flex flex-wrap items-center gap-1-5 w-full sm:w-auto">
             <span className="text-xs text-muted font-medium mr-1">Populares:</span>
             {POPULAR_CITIES.map((c, i) => (
               <button
@@ -197,17 +206,107 @@ function App() {
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 glass-panel">
           <div className="loader mb-3"></div>
-          <p className="text-muted text-sm">Obteniendo datos meteorológicos de alta precisión...</p>
+          <p className="text-muted text-sm">Analizando clima y calculando ventanas de trabajo para {selectedCity.name}...</p>
         </div>
       ) : current ? (
         <>
-          {/* Main Top Grid: Current Conditions + Task Semaphore */}
+          {/* HERO PANEL: PANORAMA GENERAL Y VENTANA DE TRABAJO DE HOY */}
+          <div className="glass-panel hero-panorama-card mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass pb-4 mb-4">
+              <div>
+                <span className="text-xs text-muted font-bold uppercase tracking-wider">Panorama de Pulverización</span>
+                <h2 className="text-xl md:text-2xl font-extrabold text-white mt-1">
+                  {selectedCity.name}: ¿Conviene fumigar hoy?
+                </h2>
+              </div>
+
+              {/* Status Alert Badge */}
+              <div className={`spray-now-badge badge-hero-${currentSprayEval?.status}`}>
+                {currentSprayEval?.status === 'green' && <CheckCircle2 size={24} className="shrink-0" />}
+                {currentSprayEval?.status === 'yellow' && <AlertCircle size={24} className="shrink-0" />}
+                {currentSprayEval?.status === 'red' && <XCircle size={24} className="shrink-0" />}
+                <div>
+                  <div className="text-xs font-bold uppercase">Estado Actual</div>
+                  <div className="text-sm md:text-base font-extrabold">
+                    {currentSprayEval?.status === 'green' ? '🟢 SE PUEDE FUMIGAR AHORA' : currentSprayEval?.status === 'yellow' ? '🟡 PRECAUCIÓN AL APLICAR' : '🔴 NO FUMIGAR AHORA'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs md:text-sm text-muted mb-4 leading-relaxed">
+              <strong>Diagnóstico actual:</strong> {currentSprayEval?.message}
+            </p>
+
+            {/* Work Window & Sun Schedule Grid */}
+            <div className="panorama-details-grid">
+              {/* Cuándo Arrancar */}
+              <div className="panorama-box green-highlight">
+                <div className="flex items-center gap-2 mb-1 text-primary font-bold text-xs uppercase">
+                  <Play size={16} /> Cuándo Arrancar Hoy
+                </div>
+                <div className="text-lg font-black text-white">
+                  {todayAnalysis?.bestStart}
+                </div>
+                <span className="text-xs text-muted mt-1">Hora de inicio recomendada</span>
+              </div>
+
+              {/* Cuándo Parar */}
+              <div className="panorama-box red-highlight">
+                <div className="flex items-center gap-2 mb-1 text-red-400 font-bold text-xs uppercase">
+                  <Square size={16} /> Cuándo Parar Hoy
+                </div>
+                <div className="text-lg font-black text-white">
+                  {todayAnalysis?.bestStop}
+                </div>
+                <span className="text-xs text-muted mt-1">Límite por viento/evaporación</span>
+              </div>
+
+              {/* Horarios de Luz y Noche */}
+              <div className="panorama-box">
+                <div className="flex items-center gap-2 mb-1 text-yellow-400 font-bold text-xs uppercase">
+                  <Sun size={16} /> Luz Solar y Noche
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-1 text-xs text-white">
+                    <Sunrise size={14} className="text-yellow-400 shrink-0" />
+                    <span>Salida: <strong>{formatTimeHHMM(todayAnalysis?.sunrise)} hs</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-white">
+                    <Sunset size={14} className="text-orange-400 shrink-0" />
+                    <span>Puesta: <strong>{formatTimeHHMM(todayAnalysis?.sunset)} hs</strong></span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted mt-1">
+                  Luz total: <strong>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Best Day of Week Golden Banner */}
+            {bestDay && (
+              <div className="best-day-banner mt-4">
+                <Award size={24} className="text-yellow-400 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold uppercase text-yellow-400 tracking-wider">🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR</div>
+                  <div className="text-sm md:text-base font-bold text-white">
+                    {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — {bestDay.greenCount} horas de ventana óptima
+                  </div>
+                  <div className="text-xs text-muted">
+                    Ventana recomendada: {bestDay.windows.join(' y ')}. Viento máx: {bestDay.maxWind} km/h.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* MAIN GRID: CURRENT WEATHER METRICS & AG-TASK SEMAPHORE */}
           <div className="main-grid mb-6">
             {/* Current Weather Card */}
             <div className="glass-panel weather-card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <Thermometer size={20} color="var(--primary-hover)" /> Clima Actual
+                  <Thermometer size={20} color="var(--primary-hover)" /> Clima Actual en {selectedCity.name}
                 </h2>
                 <span className="weather-badge">
                   {getWeatherDescription(current.weather_code)}
@@ -230,9 +329,8 @@ function App() {
                     <div className="text-xl font-bold text-white">
                       {current.wind_speed_10m} <span className="text-sm font-normal text-muted">km/h</span>
                     </div>
-                    <div className="text-xs text-muted mt-1 flex items-center gap-1">
-                      <span>Ráfagas:</span>
-                      <strong className="text-white">{current.wind_gusts_10m} km/h</strong>
+                    <div className="text-xs text-muted mt-1">
+                      Ráfagas: <strong className="text-white">{current.wind_gusts_10m} km/h</strong>
                     </div>
                     <div className="wind-direction-pill mt-2 flex items-center gap-1-5">
                       <Navigation 
@@ -268,31 +366,18 @@ function App() {
               </div>
             </div>
 
-            {/* Agricultural Task Monitor */}
+            {/* General Agricultural Task Semaphore (No Crop Division) */}
             <div className="glass-panel tasks-card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="flex items-center gap-2 text-base md:text-lg">
-                  <ShieldAlert size={20} color="var(--primary-hover)" /> Semáforo de Tareas
+                  <ShieldAlert size={20} color="var(--primary-hover)" /> Semáforo de Labores
                 </h2>
-                {/* Crop Selector */}
-                <div className="crop-selector flex items-center gap-1">
-                  <span className="text-xs text-muted font-medium">Grano:</span>
-                  <select 
-                    value={selectedCrop} 
-                    onChange={(e) => setSelectedCrop(e.target.value)}
-                    className="crop-select"
-                  >
-                    <option value="Soja">Soja</option>
-                    <option value="Maíz">Maíz</option>
-                    <option value="Trigo">Trigo</option>
-                    <option value="Girasol">Girasol</option>
-                  </select>
-                </div>
+                <span className="text-xs text-muted">Evaluación agronómica</span>
               </div>
 
               <div className="tasks-grid">
                 {['pulverizar', 'sembrar', 'cosechar'].map((task) => {
-                  const rules = evaluateConditions(task, selectedCrop, current);
+                  const rules = evaluateConditions(task, current);
                   return (
                     <div key={task} className={`state-card state-border-${rules.status}`}>
                       <div className="state-header">
@@ -314,13 +399,146 @@ function App() {
             </div>
           </div>
 
-          {/* NEW SECTION: Advanced Agronomic Insights / Operational Monitors */}
+          {/* PLANIFICADOR SEMANAL DE VENTANAS Y HORARIOS (7 DÍAS) */}
+          <div className="glass-panel mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+              <h2 className="flex items-center gap-2 text-base md:text-lg">
+                <Calendar size={20} color="var(--primary-hover)" /> Planificador Semanal de Pulverización (7 Días)
+              </h2>
+              <span className="text-xs text-muted">Ventanas de inicio, corte y luz solar</span>
+            </div>
+
+            <div className="weekly-schedule-list">
+              {weeklyAnalysis?.days?.map((dayInfo, idx) => {
+                const dayName = getDayName(dayInfo.dateStr, idx);
+                const dateFormatted = formatDateShort(dayInfo.dateStr);
+
+                return (
+                  <div key={idx} className={`weekly-day-card day-status-${dayInfo.overallStatus} ${idx === 0 ? 'today-highlight' : ''}`}>
+                    <div className="weekly-day-header">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-sm md:text-base">{dayName}</span>
+                        <span className="text-xs text-muted">{dateFormatted}</span>
+                        {idx === 0 && <span className="today-chip">HOY</span>}
+                      </div>
+
+                      <span className={`status-badge badge-${dayInfo.overallStatus}`}>
+                        {dayInfo.overallStatus === 'green' ? `${dayInfo.greenCount}hs ÓPTIMAS` : dayInfo.overallStatus === 'yellow' ? 'VENTANA LIMITADA' : 'NO FUMIGAR'}
+                      </span>
+                    </div>
+
+                    <div className="weekly-day-body mt-2">
+                      <div className="weekly-windows-info">
+                        <div className="text-xs text-white font-semibold flex items-center gap-1.5">
+                          <Clock size={14} className="text-primary shrink-0" />
+                          <span>Ventana recomendada: <strong>{dayInfo.windows.join(' | ')}</strong></span>
+                        </div>
+                        <div className="text-xs text-muted mt-1 flex items-center gap-1.5">
+                          <Square size={12} className="text-red-400 shrink-0" />
+                          <span>Cuándo parar: <strong>{dayInfo.bestStop}</strong></span>
+                        </div>
+                      </div>
+
+                      <div className="weekly-day-sun flex items-center gap-3 mt-2 pt-2 border-t border-glass text-xs text-muted">
+                        <span className="flex items-center gap-1">
+                          <Sunrise size={12} className="text-yellow-400" /> Salida: {formatTimeHHMM(dayInfo.sunrise)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Sunset size={12} className="text-orange-400" /> Puesta: {formatTimeHHMM(dayInfo.sunset)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Wind size={12} /> Viento máx: {dayInfo.maxWind} km/h
+                        </span>
+                        {dayInfo.rainSum > 0 && (
+                          <span className="flex items-center gap-1 text-blue">
+                            <CloudRain size={12} /> Lluvia: {dayInfo.rainSum} mm
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* DETALLE HORA POR HORA (48 HORAS CON ALERTAS) */}
+          <div className="glass-panel mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="flex items-center gap-2 text-base md:text-lg">
+                <Clock size={20} color="var(--primary-hover)" /> Pronóstico Detallado Hora por Hora con Alerta (48 Horas)
+              </h2>
+              <span className="text-xs text-muted">Desliza para ver más horas →</span>
+            </div>
+
+            <div className="hourly-scroll">
+              {hourly?.time?.slice(0, 48).map((timeStr, idx) => {
+                const date = new Date(timeStr);
+                const isNow = Math.abs(date.getTime() - Date.now()) < 1800000;
+                const hours = date.getHours().toString().padStart(2, '0');
+                const dayStr = date.toLocaleDateString('es-AR', { weekday: 'short' });
+                const dirName = getWindDirectionName(hourly.wind_direction_10m[idx]);
+                const temp = hourly.temperature_2m[idx];
+                const hum = hourly.relative_humidity_2m[idx];
+                const wind = hourly.wind_speed_10m[idx];
+                const gusts = hourly.wind_gusts_10m[idx];
+                const rain = hourly.precipitation[idx];
+
+                // Calculate spray alert per hour
+                const hourEval = evaluateConditions('pulverizar', {
+                  temperature_2m: temp,
+                  relative_humidity_2m: hum,
+                  wind_speed_10m: wind,
+                  wind_gusts_10m: gusts,
+                  precipitation: rain
+                });
+
+                return (
+                  <div key={idx} className={`hourly-item-extended ${isNow ? 'is-now' : ''} hourly-status-${hourEval.status}`}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs text-muted uppercase font-semibold">{dayStr}</span>
+                      <span className={`status-dot status-${hourEval.status}`}></span>
+                    </div>
+
+                    <span className="text-sm font-bold text-white mt-1">{hours}:00</span>
+                    
+                    <span className="hourly-temp font-extrabold text-white my-1">
+                      {Math.round(temp)}°
+                    </span>
+
+                    {/* Spray Alert Label */}
+                    <span className={`hourly-alert-chip alert-chip-${hourEval.status}`}>
+                      {hourEval.status === 'green' ? 'FUMIGAR' : hourEval.status === 'yellow' ? 'PRECAUCIÓN' : 'PARAR'}
+                    </span>
+
+                    <div className="hourly-stat mt-2">
+                      <Wind size={12} className="text-muted shrink-0" />
+                      <span className="font-medium text-xs text-white">{wind} km/h</span>
+                      <span className="text-[10px] text-muted">Ráf: {gusts}</span>
+                    </div>
+
+                    <div className="hourly-dir flex items-center gap-1 text-[11px] text-muted mt-1">
+                      <Navigation size={10} style={{ transform: `rotate(${hourly.wind_direction_10m[idx]}deg)` }} className="shrink-0" />
+                      <span>{dirName}</span>
+                    </div>
+
+                    <div className="hourly-stat mt-1">
+                      <CloudRain size={12} className="text-muted shrink-0" />
+                      <span className="text-xs text-white">{rain} mm</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* MONITORES AGRONÓMICOS TÉCNICOS (Delta T, Inversión Térmica, Piso en Lote, Heladas) */}
           <div className="glass-panel mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="flex items-center gap-2 text-base md:text-lg">
-                <Gauge size={20} color="var(--primary-hover)" /> Monitores e Insights Agronómicos
+                <Gauge size={20} color="var(--primary-hover)" /> Monitores de Parámetros de Aplicación
               </h2>
-              <span className="text-xs text-muted hidden sm:inline">Indicadores para decisión en lote</span>
+              <span className="text-xs text-muted hidden sm:inline">Delta T, Inversión, Piso y Heladas</span>
             </div>
 
             <div className="insights-grid">
@@ -391,109 +609,6 @@ function App() {
                   <p className="text-xs text-muted mt-1 leading-relaxed">{frostRisk.advice}</p>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Extended Daily Forecast (7 Días) */}
-          <div className="glass-panel mb-6">
-            <h2 className="flex items-center gap-2 text-base md:text-lg mb-4">
-              <Calendar size={20} color="var(--primary-hover)" /> Pronóstico Extendido por Días (7 Días)
-            </h2>
-            <div className="daily-grid">
-              {daily?.time?.map((dateStr, idx) => {
-                const dayName = getDayName(dateStr, idx);
-                const dateFormatted = formatDateShort(dateStr);
-                const maxTemp = Math.round(daily.temperature_2m_max[idx]);
-                const minTemp = Math.round(daily.temperature_2m_min[idx]);
-                const rainSum = daily.precipitation_sum[idx];
-                const rainProb = daily.precipitation_probability_max[idx];
-                const maxWind = Math.round(daily.wind_speed_10m_max[idx]);
-                const maxGust = Math.round(daily.wind_gusts_10m_max[idx]);
-                const code = daily.weather_code[idx];
-
-                return (
-                  <div key={idx} className={`daily-card ${idx === 0 ? 'today-highlight' : ''}`}>
-                    <div className="daily-header">
-                      <span className="font-bold text-white">{dayName}</span>
-                      <span className="text-xs text-muted">{dateFormatted}</span>
-                    </div>
-
-                    <div className="daily-desc text-xs text-muted my-1">
-                      {getWeatherDescription(code)}
-                    </div>
-
-                    <div className="daily-temps my-2">
-                      <span className="temp-max font-bold text-white">{maxTemp}°</span>
-                      <span className="temp-divider">/</span>
-                      <span className="temp-min text-muted">{minTemp}°</span>
-                    </div>
-
-                    <div className="daily-info-list">
-                      <div className="daily-info-item text-xs">
-                        <CloudRain size={12} className="text-muted shrink-0" />
-                        <span>{rainSum} mm</span>
-                        {rainProb > 0 && <span className="text-xs text-muted">({rainProb}%)</span>}
-                      </div>
-
-                      <div className="daily-info-item text-xs">
-                        <Wind size={12} className="text-muted shrink-0" />
-                        <span>{maxWind} km/h</span>
-                        <span className="text-xs text-muted">(Ráf: {maxGust})</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Extended Hourly Forecast (Hora por Hora) */}
-          <div className="glass-panel mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="flex items-center gap-2 text-base md:text-lg">
-                <Clock size={20} color="var(--primary-hover)" /> Pronóstico Detallado Hora por Hora (48 Horas)
-              </h2>
-              <span className="text-xs text-muted">Desliza para ver más horas →</span>
-            </div>
-
-            <div className="hourly-scroll">
-              {hourly?.time?.slice(0, 48).map((timeStr, idx) => {
-                const date = new Date(timeStr);
-                const isNow = Math.abs(date.getTime() - Date.now()) < 1800000;
-                const hours = date.getHours().toString().padStart(2, '0');
-                const dayStr = date.toLocaleDateString('es-AR', { weekday: 'short' });
-                const dirName = getWindDirectionName(hourly.wind_direction_10m[idx]);
-
-                return (
-                  <div key={idx} className={`hourly-item-extended ${isNow ? 'is-now' : ''}`}>
-                    <span className="text-xs text-muted uppercase font-semibold">{dayStr}</span>
-                    <span className="text-sm font-bold text-white">{hours}:00</span>
-                    
-                    <span className="hourly-temp font-extrabold text-white mt-1">
-                      {Math.round(hourly.temperature_2m[idx])}°
-                    </span>
-
-                    <div className="hourly-stat mt-2">
-                      <Wind size={12} className="text-muted shrink-0" />
-                      <span className="font-medium text-xs text-white">{hourly.wind_speed_10m[idx]} km/h</span>
-                      <span className="text-[10px] text-muted">Ráf: {hourly.wind_gusts_10m[idx]}</span>
-                    </div>
-
-                    <div className="hourly-dir flex items-center gap-1 text-[11px] text-muted">
-                      <Navigation size={10} style={{ transform: `rotate(${hourly.wind_direction_10m[idx]}deg)` }} className="shrink-0" />
-                      <span>{dirName}</span>
-                    </div>
-
-                    <div className="hourly-stat mt-1">
-                      <CloudRain size={12} className="text-muted shrink-0" />
-                      <span className="text-xs text-white">{hourly.precipitation[idx]} mm</span>
-                      {hourly.precipitation_probability[idx] > 0 && (
-                        <span className="text-[10px] text-muted">({hourly.precipitation_probability[idx]}%)</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </>

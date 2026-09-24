@@ -135,7 +135,7 @@ function App() {
           </div>
           <div>
             <h1 className="brand-title flex items-center justify-center gap-2 text-2xl md:text-3xl font-black">
-              Fumiga-arg <span className="badge-beta">AGRO</span>
+              CheClima <span className="badge-beta">AGRO</span>
             </h1>
             <p className="text-xs md:text-sm text-dark font-medium mt-1">
               Monitor de decisiones para Pulverización, Siembra y Cosecha

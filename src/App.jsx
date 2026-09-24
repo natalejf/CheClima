@@ -1025,11 +1025,11 @@ function App() {
           border: '1px solid rgba(148,163,184,0.12)', maxWidth: '540px'
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
-            🌐 <strong>Fuente de Datos:</strong> Open-Meteo API (Modelos ECMWF / GFS)
+            🌐 <strong>Datos Clima:</strong> Open-Meteo API
           </span>
           <span>•</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
-            🌱 <strong>Herramientas Agronómicas</strong>
+            📖 <strong>Documentación Agronómica:</strong> Granos.ar
           </span>
         </div>
 

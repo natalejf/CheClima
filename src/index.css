@@ -5,14 +5,14 @@
   --primary-hover: #16a34a;
   --primary-brand: #16a34a;
   
-  --bg-light: #f8fafc;
-  --bg-panel: rgba(255, 255, 255, 0.92);
-  --border: rgba(226, 232, 240, 0.9);
+  --bg-sage: #9ead9e;
+  --bg-panel: rgba(255, 255, 255, 0.93);
+  --border: rgba(203, 213, 225, 0.9);
   --border-light: rgba(203, 213, 225, 0.5);
   
   --text-dark: #0f172a;
   --text-primary: #1e293b;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
   
   --status-green: #15803d;
   --status-yellow: #b45309;
@@ -37,15 +37,17 @@ html, body {
 
 body {
   font-family: var(--font-family);
-  background-color: var(--bg-light);
+  background-color: var(--bg-sage);
+  background-image: 
+    linear-gradient(180deg, rgba(158, 173, 158, 0.78) 0%, rgba(140, 156, 140, 0.9) 100%),
+    url('https://images.pexels.com/photos/10150971/pexels-photo-10150971.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.08) 0%, transparent 60%),
-    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
-  background-attachment: fixed;
 }
 
 /* Full Width App Container */
@@ -65,7 +67,7 @@ body {
   }
 }
 
-/* Glassmorphism Panel Light Theme */
+/* Glassmorphism Panel Light Sage Theme */
 .glass-panel {
   background: var(--bg-panel);
   backdrop-filter: blur(16px);
@@ -73,7 +75,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1rem;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 12px 32px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
 }
@@ -85,8 +87,8 @@ body {
 }
 
 .glass-panel:hover {
-  border-color: rgba(34, 197, 94, 0.4);
-  box-shadow: 0 14px 36px -5px rgba(0, 0, 0, 0.08);
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 16px 40px -5px rgba(0, 0, 0, 0.12);
 }
 
 h1, h2, h3, h4 {
@@ -96,7 +98,7 @@ h1, h2, h3, h4 {
 
 .brand-title {
   font-weight: 900;
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -115,8 +117,8 @@ h1, h2, h3, h4 {
 /* HERO PANORAMA CARD */
 .hero-panorama-card {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  box-shadow: 0 12px 36px -5px rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  box-shadow: 0 12px 36px -5px rgba(0, 0, 0, 0.08);
 }
 
 .spray-now-badge {
@@ -152,15 +154,16 @@ h1, h2, h3, h4 {
   color: #7f1d1d;
 }
 
-.panorama-details-grid {
+/* HERO 3 CARDS IN 1 ROW GRID */
+.hero-three-cards-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.75rem;
 }
 
 @media (min-width: 640px) {
-  .panorama-details-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .hero-three-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -178,20 +181,37 @@ h1, h2, h3, h4 {
   border-color: #bbf7d0;
 }
 
+.panorama-box.amber-highlight {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
 .panorama-box.blue-highlight {
   background: #eff6ff;
   border-color: #bfdbfe;
 }
 
-/* BEST DAY BANNER */
-.best-day-banner {
+/* PROMINENT FULL-WIDTH BEST DAY BANNER */
+.best-day-banner-prominent {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  background: linear-gradient(135deg, #fffbeb 0%, #f0fdf4 100%);
-  border: 1px solid #fde68a;
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
+  gap: 1rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #dcfce7 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 24px -4px rgba(245, 158, 11, 0.25);
+}
+
+.best-day-icon-circle {
+  width: 52px;
+  height: 52px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
 }
 
 /* FORECAST 7-DAY CARDS GRID */
@@ -355,17 +375,10 @@ h1, h2, h3, h4 {
   line-height: 1.3;
 }
 
-/* Header & Search Bar */
+/* Header & Search Bar Centered */
 .search-wrapper {
   position: relative;
   width: 100%;
-}
-
-@media (min-width: 768px) {
-  .search-wrapper {
-    min-width: 320px;
-    width: auto;
-  }
 }
 
 .search-input-box {
@@ -377,32 +390,33 @@ h1, h2, h3, h4 {
 
 .search-input-box input {
   width: 100%;
-  padding: 0.65rem 2.25rem 0.65rem 2.5rem;
+  padding: 0.75rem 2.5rem 0.75rem 2.75rem;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--text-dark);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-family: inherit;
   outline: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search-input-box input:focus {
   border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
 }
 
 .search-icon {
   position: absolute;
-  left: 0.85rem;
+  left: 0.95rem;
   color: var(--text-secondary);
   pointer-events: none;
 }
 
 .clear-btn {
   position: absolute;
-  right: 0.65rem;
+  right: 0.75rem;
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -426,7 +440,7 @@ h1, h2, h3, h4 {
   padding: 0.5rem;
   background: #ffffff;
   border-color: #cbd5e1;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.12);
 }
 
 .search-item {
@@ -448,13 +462,14 @@ h1, h2, h3, h4 {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: var(--text-primary);
-  padding: 0.25rem 0.65rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 99px;
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
 }
 
 .chip-btn:hover {
@@ -467,6 +482,7 @@ h1, h2, h3, h4 {
   border-color: #16a34a;
   color: #ffffff;
   font-weight: 700;
+  box-shadow: 0 4px 10px rgba(21, 128, 61, 0.25);
 }
 
 /* Main Grid Layout */
@@ -671,6 +687,7 @@ h1, h2, h3, h4 {
 .font-extrabold { font-weight: 800; }
 .font-black { font-weight: 900; }
 .text-center { text-align: center; }
+.text-left { text-align: left; }
 .text-primary-brand { color: var(--primary-brand); }
 .bg-glass-light { background: rgba(255, 255, 255, 0.8); }
 .border-glass { border-color: #e2e8f0; }

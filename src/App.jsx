@@ -4,7 +4,7 @@ import {
   CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert,
   Gauge, AlertTriangle, Truck, Snowflake, Sunrise, Sunset,
   Sun, Award, CheckCircle2, XCircle, AlertCircle, Play,
-  Compass, CloudSun, BarChart3, CheckSquare, Info
+  Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
@@ -94,6 +94,17 @@ function App() {
   // Compute immediate spray status
   const currentSprayEval = current ? evaluateConditions('pulverizar', current) : null;
 
+  // Formatted current date string
+  const getFormattedTodayDate = () => {
+    const date = new Date();
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const dayName = days[date.getDay()];
+    const dayNum = date.getDate().toString().padStart(2, '0');
+    const monthNum = (date.getMonth() + 1).toString().padStart(2, '0');
+    const yearNum = date.getFullYear();
+    return `${dayName} ${dayNum}/${monthNum}/${yearNum}`;
+  };
+
   // Format dates for daily forecast
   const getDayName = (dateStr, index) => {
     if (index === 0) return 'Hoy';
@@ -116,85 +127,85 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Header & City Search Bar */}
-      <header className="app-header glass-panel mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="brand flex items-center gap-3 w-full md:w-auto">
-            <div className="brand-icon shrink-0">
-              <Sprout size={32} className="text-primary-brand" />
-            </div>
-            <div>
-              <h1 className="brand-title flex items-center gap-2 text-xl md:text-2xl">
-                Fumiga-arg <span className="badge-beta">AGRO</span>
-              </h1>
-              <p className="text-xs text-muted">Monitor de decisiones y ventanas de pulverización para el campo</p>
-            </div>
+      {/* Centered Header & Search Bar */}
+      <header className="app-header glass-panel mb-6 flex flex-col items-center text-center">
+        <div className="brand flex flex-col items-center gap-2 mb-4">
+          <div className="brand-icon">
+            <Sprout size={40} className="text-primary-brand" />
           </div>
-
-          {/* Search Box */}
-          <div className="search-wrapper w-full md:w-auto" ref={searchContainerRef}>
-            <div className="search-input-box">
-              <Search size={18} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Buscar cualquier ciudad o localidad..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowDropdown(true);
-                }}
-                onFocus={() => setShowDropdown(true)}
-              />
-              {searchQuery && (
-                <button 
-                  className="clear-btn" 
-                  onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            {/* Dropdown Results */}
-            {showDropdown && (searchResults.length > 0 || isSearching) && (
-              <div className="search-dropdown glass-panel">
-                {isSearching ? (
-                  <div className="p-3 text-center text-sm text-muted">Buscando localidades...</div>
-                ) : (
-                  searchResults.map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      className="search-item"
-                      onClick={() => handleSelectCity(item)}
-                    >
-                      <MapPin size={16} className="text-muted shrink-0" />
-                      <div>
-                        <span className="font-medium text-dark">{item.name}</span>
-                        <span className="text-xs text-muted ml-2">
-                          {[item.admin1, item.country].filter(Boolean).join(', ')}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+          <div>
+            <h1 className="brand-title flex items-center justify-center gap-2 text-2xl md:text-3xl font-black">
+              Fumiga-arg <span className="badge-beta">AGRO</span>
+            </h1>
+            <p className="text-xs md:text-sm text-dark font-medium mt-1">
+              Monitor de decisiones y ventanas operativas de pulverización para el productor agrícola
+            </p>
           </div>
         </div>
 
-        {/* Selected City Info & Quick Cities */}
-        <div className="mt-4 pt-4 border-t border-glass flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2 text-dark font-bold">
+        {/* Centered Search Box */}
+        <div className="search-wrapper w-full max-w-xl mx-auto" ref={searchContainerRef}>
+          <div className="search-input-box">
+            <Search size={20} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar cualquier ciudad o localidad (ej. Necochea, Balcarce, Pergamino)..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+            />
+            {searchQuery && (
+              <button 
+                className="clear-btn" 
+                onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+
+          {/* Dropdown Results */}
+          {showDropdown && (searchResults.length > 0 || isSearching) && (
+            <div className="search-dropdown glass-panel text-left">
+              {isSearching ? (
+                <div className="p-3 text-center text-sm text-muted">Buscando localidades...</div>
+              ) : (
+                searchResults.map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    className="search-item"
+                    onClick={() => handleSelectCity(item)}
+                  >
+                    <MapPin size={16} className="text-muted shrink-0" />
+                    <div>
+                      <span className="font-medium text-dark">{item.name}</span>
+                      <span className="text-xs text-muted ml-2">
+                        {[item.admin1, item.country].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Selected City Info & Quick Cities Centered */}
+        <div className="mt-4 pt-4 border-t border-glass w-full flex flex-col items-center gap-3">
+          <div className="flex items-center justify-center gap-2 text-dark font-black">
             <MapPin size={22} className="text-primary-brand shrink-0" />
-            <span className="text-xl">{selectedCity.name}</span>
-            <span className="text-sm text-muted font-normal">
+            <span className="text-xl md:text-2xl">{selectedCity.name}</span>
+            <span className="text-sm text-muted font-bold">
               {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
             </span>
           </div>
 
-          {/* Popular City Quick Buttons */}
-          <div className="popular-cities flex flex-wrap items-center gap-1-5 w-full sm:w-auto">
-            <span className="text-xs text-muted font-medium mr-1">Populares:</span>
+          {/* Popular City Quick Buttons Centered */}
+          <div className="popular-cities flex flex-wrap items-center justify-center gap-1-5">
+            <span className="text-xs text-muted font-bold mr-1">Localidades:</span>
             {POPULAR_CITIES.map((c, i) => (
               <button
                 key={i}
@@ -211,7 +222,7 @@ function App() {
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 glass-panel">
           <div className="loader mb-3"></div>
-          <p className="text-muted text-sm">Calculando ventanas operativas y cambios de viento para {selectedCity.name}...</p>
+          <p className="text-dark font-bold text-sm">Calculando ventanas operativas y cambios de viento para {selectedCity.name}...</p>
         </div>
       ) : current ? (
         <>
@@ -219,17 +230,20 @@ function App() {
           <div className="glass-panel hero-panorama-card mb-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass pb-4 mb-4">
               <div>
-                <span className="text-xs text-muted font-bold uppercase tracking-wider">Panorama de Pulverización</span>
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-primary-brand shrink-0" />
+                  <span className="text-xs text-dark font-extrabold uppercase tracking-wider">Panorama de Pulverización</span>
+                </div>
                 <h2 className="text-xl md:text-2xl font-black text-dark mt-1">
-                  {selectedCity.name}: ¿Conviene fumigar hoy?
+                  {selectedCity.name}: ¿Conviene fumigar hoy? <span className="text-sm md:text-base font-bold text-muted">({getFormattedTodayDate()})</span>
                 </h2>
               </div>
 
               {/* Immediate Status Badge */}
               <div className={`spray-now-badge badge-hero-${currentSprayEval?.status}`}>
-                {currentSprayEval?.status === 'green' && <CheckCircle2 size={24} className="shrink-0" />}
-                {currentSprayEval?.status === 'yellow' && <AlertCircle size={24} className="shrink-0" />}
-                {currentSprayEval?.status === 'red' && <XCircle size={24} className="shrink-0" />}
+                {currentSprayEval?.status === 'green' && <CheckCircle2 size={26} className="shrink-0" />}
+                {currentSprayEval?.status === 'yellow' && <AlertCircle size={26} className="shrink-0" />}
+                {currentSprayEval?.status === 'red' && <XCircle size={26} className="shrink-0" />}
                 <div>
                   <div className="text-xs font-bold uppercase tracking-wider">Estado Actual</div>
                   <div className="text-sm md:text-base font-black">
@@ -239,26 +253,33 @@ function App() {
               </div>
             </div>
 
-            <p className="text-xs md:text-sm text-dark mb-4 leading-relaxed font-medium">
-              <strong>Diagnóstico en lote:</strong> {currentSprayEval?.message}
-            </p>
-
-            {/* Work Window & Sun Schedule */}
-            <div className="panorama-details-grid">
-              {/* Ventana Horaria Operativa */}
+            {/* Row 1: 3 Cards in a Single Row */}
+            <div className="hero-three-cards-grid">
+              {/* Card 1: Ventana Horaria Operativa Hoy */}
               <div className="panorama-box green-highlight">
-                <div className="flex items-center gap-2 mb-1 text-primary-brand font-extrabold text-xs uppercase">
+                <div className="flex items-center gap-2 mb-1 text-primary-brand font-black text-xs uppercase">
                   <Play size={16} /> Ventana Horaria Operativa Hoy
                 </div>
                 <div className="text-base md:text-lg font-black text-dark">
                   {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima continua'}
                 </div>
-                <span className="text-xs text-muted mt-1">Horario apto para pulverizar/fumigar</span>
+                <span className="text-xs text-muted mt-1 font-medium">Horario apto para pulverizar/fumigar</span>
               </div>
 
-              {/* Horarios de Luz Solar */}
+              {/* Card 2: Diagnóstico & Estado */}
+              <div className="panorama-box amber-highlight">
+                <div className="flex items-center gap-2 mb-1 text-amber-800 font-black text-xs uppercase">
+                  <ShieldAlert size={16} /> Diagnóstico en Lote Hoy
+                </div>
+                <div className="text-xs md:text-sm font-bold text-dark leading-snug">
+                  {currentSprayEval?.message}
+                </div>
+                <span className="text-xs text-muted mt-1 font-medium">Viento: {current.wind_speed_10m} km/h • Delta T: {deltaT?.deltaT}°C</span>
+              </div>
+
+              {/* Card 3: Horarios de Luz Solar */}
               <div className="panorama-box blue-highlight">
-                <div className="flex items-center gap-2 mb-1 text-blue-600 font-extrabold text-xs uppercase">
+                <div className="flex items-center gap-2 mb-1 text-blue-700 font-black text-xs uppercase">
                   <Sun size={16} /> Salida y Puesta del Sol
                 </div>
                 <div className="flex items-center gap-4 mt-1">
@@ -271,23 +292,29 @@ function App() {
                     <span>Puesta: {formatTimeHHMM(todayAnalysis?.sunset)} hs</span>
                   </div>
                 </div>
-                <div className="text-xs text-muted mt-1">
+                <div className="text-xs text-muted mt-1 font-medium">
                   Luz solar disponible: <strong>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
                 </div>
               </div>
             </div>
 
-            {/* Best Day Banner */}
+            {/* Row 2: Prominent Single Full-Width Banner for Best Day */}
             {bestDay && (
-              <div className="best-day-banner mt-4">
-                <Award size={26} className="text-amber-500 shrink-0" />
-                <div>
-                  <div className="text-xs font-black uppercase text-amber-700 tracking-wider">🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR</div>
-                  <div className="text-sm md:text-base font-extrabold text-dark">
-                    {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — {bestDay.greenCount} horas de ventana óptima
+              <div className="best-day-banner-prominent mt-4 w-full">
+                <div className="best-day-icon-circle shrink-0">
+                  <Award size={32} className="text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase text-amber-900 tracking-wider bg-amber-200 px-2.5 py-0.5 rounded-full border border-amber-300">
+                      🏆 MEJOR DÍA DE LA SEMANA PARA FUMIGAR
+                    </span>
                   </div>
-                  <div className="text-xs text-muted">
-                    {bestDay.windows.length > 0 ? `Ventanas operativas: ${bestDay.windows.join(' y ')}.` : 'Día con menor viento y lluvia.'} Viento máx: {bestDay.maxWind} km/h.
+                  <div className="text-lg md:text-xl font-black text-dark mt-1">
+                    {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — <span className="text-emerald-800">{bestDay.greenCount} horas de ventana óptima</span>
+                  </div>
+                  <div className="text-xs md:text-sm text-dark font-semibold mt-0.5">
+                    {bestDay.windows.length > 0 ? `Ventanas recomendadas: ${bestDay.windows.join(' y ')}.` : 'Día con menor viento y lluvias.'} Viento máx: {bestDay.maxWind} km/h (Ráf: {bestDay.maxGust} km/h).
                   </div>
                 </div>
               </div>

@@ -29,6 +29,7 @@ function App() {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [plannerFilter, setPlannerFilter] = useState('todos');
+  const [heroTask, setHeroTask] = useState('fumigar');
 
   const searchContainerRef = useRef(null);
 
@@ -103,8 +104,14 @@ function App() {
   const totalWeeklyRainfall = daily?.precipitation_sum ? daily.precipitation_sum.reduce((acc, val) => acc + val, 0).toFixed(1) : 0;
   const maxWeeklyGust = daily?.wind_gusts_10m_max ? Math.max(...daily.wind_gusts_10m_max) : 0;
 
-  // Compute immediate spray status
+  // Compute immediate status for all tasks
   const currentSprayEval = current ? evaluateConditions('fumigar', current) : null;
+  const currentSowEval = current ? evaluateConditions('sembrar', current) : null;
+  const currentHarvestEval = current ? evaluateConditions('cosechar', current) : null;
+
+  const bestDayFumigar = weeklyAnalysis?.bestDayFumigar;
+  const bestDaySembrar = weeklyAnalysis?.bestDaySembrar;
+  const bestDayCosechar = weeklyAnalysis?.bestDayCosechar;
 
   // Formatted current date string
   const getFormattedTodayDate = () => {
@@ -309,10 +316,10 @@ function App() {
         <>
           {/* ═══ HERO PANORAMA ═══ */}
           <div className="glass-panel hero-panorama-card mb-6">
-            {/* Top Row: Title + Status */}
+            {/* Top Row: Title + Task Selector + Status Badges */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
                     <Activity size={14} style={{ color: 'var(--green)' }} />
                     <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Campo</span>
@@ -323,22 +330,45 @@ function App() {
                   </h2>
                 </div>
 
-                {/* Status Badge */}
-                <div className={`spray-now-badge badge-hero-${currentSprayEval?.status}`} style={{ flexShrink: 0 }}>
-                  {currentSprayEval?.status === 'green' && <CheckCircle2 size={22} style={{ flexShrink: 0 }} />}
-                  {currentSprayEval?.status === 'yellow' && <AlertCircle size={22} style={{ flexShrink: 0 }} />}
-                  {currentSprayEval?.status === 'red' && <XCircle size={22} style={{ flexShrink: 0 }} />}
-                  <div>
-                    <div style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.8 }}>Estado Actual</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 900 }}>
-                      {currentSprayEval?.status === 'green' ? '🟢 APTO' : currentSprayEval?.status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO'}
-                    </div>
-                  </div>
+                {/* Labor Tabs for Panorama */}
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'fumigar', label: 'Fumigar', icon: Wind, eval: currentSprayEval },
+                    { id: 'sembrar', label: 'Sembrar', icon: Sprout, eval: currentSowEval },
+                    { id: 'cosechar', label: 'Cosechar', icon: Calendar, eval: currentHarvestEval }
+                  ].map((task) => {
+                    const TaskIcon = task.icon;
+                    const isActive = heroTask === task.id;
+                    const status = task.eval?.status || 'yellow';
+                    return (
+                      <button
+                        key={task.id}
+                        onClick={() => setHeroTask(task.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          border: isActive ? `1.5px solid var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` : '1px solid rgba(148,163,184,0.15)',
+                          background: isActive ? `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'}-bg)` : 'var(--bg-card-solid)',
+                          color: 'var(--text-white)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <TaskIcon size={12} style={{ color: `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` }} />
+                        {task.label}: {status === 'green' ? '🟢 APTO' : status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO'}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
-            {/* 3 Panorama Cards */}
+            {/* 3 Panorama Cards for Selected Task */}
             <div className="hero-three-cards-grid">
               {/* Ventana Horaria */}
               <div className="panorama-box green-highlight">
@@ -347,9 +377,13 @@ function App() {
                   <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Apta</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                  {todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima'}
+                  {heroTask === 'fumigar' && (todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima')}
+                  {heroTask === 'sembrar' && (todayAnalysis?.sowEval?.windows?.length > 0 ? todayAnalysis.sowEval.windows.join(' | ') : (todayAnalysis?.sowEval?.status !== 'red' ? 'Horario diurno (Temp > 10°C)' : 'Sin ventana apta'))}
+                  {heroTask === 'cosechar' && (todayAnalysis?.harvestEval?.windows?.length > 0 ? todayAnalysis.harvestEval.windows.join(' | ') : (todayAnalysis?.harvestEval?.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana apta'))}
                 </div>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>Horario apto para fumigar/pulverizar</span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Horario apto para {heroTask === 'fumigar' ? 'fumigar/pulverizar' : heroTask === 'sembrar' ? 'siembra' : 'cosecha'}
+                </span>
               </div>
 
               {/* Diagnóstico */}
@@ -359,10 +393,12 @@ function App() {
                   <span style={{ fontSize: '0.6rem', color: 'var(--yellow)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnóstico</span>
                 </div>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                  {currentSprayEval?.message}
+                  {heroTask === 'fumigar' && currentSprayEval?.message}
+                  {heroTask === 'sembrar' && currentSowEval?.message}
+                  {heroTask === 'cosechar' && currentHarvestEval?.message}
                 </div>
                 <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Viento: {current.wind_speed_10m} km/h • ΔT: {deltaT?.deltaT}°C
+                  Viento: {current.wind_speed_10m} km/h • Temp: {current.temperature_2m}°C • Humedad: {current.relative_humidity_2m}%
                 </span>
               </div>
 
@@ -388,8 +424,8 @@ function App() {
               </div>
             </div>
 
-            {/* Best Day Banner */}
-            {bestDay && (
+            {/* Best Day Banner for Selected Task */}
+            {weeklyAnalysis && (
               <div className="best-day-banner-prominent" style={{ marginTop: '1rem' }}>
                 <div className="best-day-icon-circle">
                   <Award size={28} style={{ color: 'var(--yellow)' }} />
@@ -401,15 +437,39 @@ function App() {
                       background: 'var(--yellow-bg)', padding: '0.15rem 0.55rem', borderRadius: '99px',
                       border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
                     }}>
-                      🏆 Mejor día para labores
+                      🏆 Mejor día para {heroTask === 'fumigar' ? 'Fumigar' : heroTask === 'sembrar' ? 'Sembrar' : 'Cosechar'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
-                    {getDayName(bestDay.dateStr, bestDay.dayIndex)} ({formatDateShort(bestDay.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDay.greenCount} hs óptimas</span>
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
-                    {bestDay.windows.length > 0 ? `Ventanas: ${bestDay.windows.join(' y ')}.` : 'Menor viento y lluvias.'} Viento máx: {bestDay.maxWind} km/h
-                  </div>
+                  {heroTask === 'fumigar' && bestDayFumigar && (
+                    <>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
+                        {getDayName(bestDayFumigar.dateStr, bestDayFumigar.dayIndex)} ({formatDateShort(bestDayFumigar.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDayFumigar.greenCount} hs óptimas</span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
+                        {bestDayFumigar.windows.length > 0 ? `Ventanas: ${bestDayFumigar.windows.join(' y ')}.` : 'Menor viento y lluvias.'} Viento máx: {bestDayFumigar.maxWind} km/h
+                      </div>
+                    </>
+                  )}
+                  {heroTask === 'sembrar' && bestDaySembrar && (
+                    <>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
+                        {getDayName(bestDaySembrar.dateStr, bestDaySembrar.dayIndex)} ({formatDateShort(bestDaySembrar.dateStr)}) — <span style={{ color: bestDaySembrar.sowEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDaySembrar.sowEval.label}</span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
+                        {bestDaySembrar.sowEval.reason} • Temp Mín: {Math.round(bestDaySembrar.minTemp)}°C • Lluvia: {bestDaySembrar.rainSum} mm
+                      </div>
+                    </>
+                  )}
+                  {heroTask === 'cosechar' && bestDayCosechar && (
+                    <>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
+                        {getDayName(bestDayCosechar.dateStr, bestDayCosechar.dayIndex)} ({formatDateShort(bestDayCosechar.dateStr)}) — <span style={{ color: bestDayCosechar.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDayCosechar.harvestEval.label}</span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
+                        {bestDayCosechar.harvestEval.reason} • Lluvia: {bestDayCosechar.rainSum} mm • Viento máx: {bestDayCosechar.maxWind} km/h
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}

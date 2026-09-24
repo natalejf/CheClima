@@ -395,18 +395,39 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     });
   }
 
-  // Find the single Best Day of the Week
-  const sortedDays = [...daysAnalysis].sort((a, b) => {
+  // Best day for Fumigar
+  const sortedFumigar = [...daysAnalysis].sort((a, b) => {
     if (b.greenCount !== a.greenCount) return b.greenCount - a.greenCount;
     if (a.rainSum !== b.rainSum) return a.rainSum - b.rainSum;
     return a.maxWind - b.maxWind;
   });
 
-  const bestDayOfWeek = sortedDays[0];
+  // Best day for Sembrar
+  const sortedSembrar = [...daysAnalysis].sort((a, b) => {
+    const statusScore = { green: 3, yellow: 2, red: 1 };
+    if (statusScore[b.sowEval.status] !== statusScore[a.sowEval.status]) {
+      return statusScore[b.sowEval.status] - statusScore[a.sowEval.status];
+    }
+    if (a.rainSum !== b.rainSum) return a.rainSum - b.rainSum;
+    return b.minTemp - a.minTemp;
+  });
+
+  // Best day for Cosechar
+  const sortedCosechar = [...daysAnalysis].sort((a, b) => {
+    const statusScore = { green: 3, yellow: 2, red: 1 };
+    if (statusScore[b.harvestEval.status] !== statusScore[a.harvestEval.status]) {
+      return statusScore[b.harvestEval.status] - statusScore[a.harvestEval.status];
+    }
+    if (a.rainSum !== b.rainSum) return a.rainSum - b.rainSum;
+    return a.maxWind - b.maxWind;
+  });
 
   return {
     days: daysAnalysis,
-    bestDayOfWeek,
+    bestDayOfWeek: sortedFumigar[0],
+    bestDayFumigar: sortedFumigar[0],
+    bestDaySembrar: sortedSembrar[0],
+    bestDayCosechar: sortedCosechar[0],
     today: daysAnalysis[0]
   };
 };

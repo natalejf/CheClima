@@ -469,7 +469,7 @@ function App() {
                     {/* ALL 3 FIELD TASKS EVALUATION */}
                     <div className="card-tasks-multi-section mt-3 flex flex-col gap-2">
                       {/* Task 1: Pulverización / Fumigación */}
-                      <div className="task-row-item">
+                      <div className="task-row-item pb-2 border-b border-white/20">
                         <div className="flex items-center justify-between text-xs font-bold mb-1">
                           <span className="flex items-center gap-1.5 text-dark">
                             <Wind size={13} className="text-primary-brand shrink-0" />
@@ -480,18 +480,18 @@ function App() {
                           </span>
                         </div>
                         {dayInfo.windows.length > 0 ? (
-                          <div className="text-[11px] font-black text-emerald-950 bg-emerald-100 p-1.5 rounded border border-emerald-300">
+                          <div className="text-[11px] font-black text-emerald-950 bg-emerald-100/90 p-1.5 rounded border border-emerald-300/60">
                             Ventana: {dayInfo.windows.join(' | ')}
                           </div>
                         ) : (
-                          <div className="text-[11px] font-bold text-rose-900 bg-rose-100 p-1.5 rounded border border-rose-300">
+                          <div className="text-[11px] font-bold text-rose-900 bg-rose-100/90 p-1.5 rounded border border-rose-300/60">
                             Restricción: {dayInfo.nonOperationalReason}
                           </div>
                         )}
                       </div>
 
                       {/* Task 2: Siembra */}
-                      <div className="task-row-item pt-1 border-t border-glass">
+                      <div className="task-row-item py-2 border-b border-white/20">
                         <div className="flex items-center justify-between text-xs font-bold mb-0.5">
                           <span className="flex items-center gap-1.5 text-dark">
                             <Sprout size={13} className="text-emerald-700 shrink-0" />
@@ -507,7 +507,7 @@ function App() {
                       </div>
 
                       {/* Task 3: Cosecha / Trilla */}
-                      <div className="task-row-item pt-1 border-t border-glass">
+                      <div className="task-row-item pt-1">
                         <div className="flex items-center justify-between text-xs font-bold mb-0.5">
                           <span className="flex items-center gap-1.5 text-dark">
                             <Calendar size={13} className="text-amber-700 shrink-0" />

@@ -45,7 +45,8 @@ export const fetchWeather = async (lat, lon) => {
     'uv_index_max'
   ].join(',');
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${currentParams}&hourly=${hourlyParams}&daily=${dailyParams}&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=7`;
+  // Query past_days=3 to analyze accumulated rain from recent days alongside forecast_days=7
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${currentParams}&hourly=${hourlyParams}&daily=${dailyParams}&past_days=3&forecast_days=7&timezone=America%2FArgentina%2FBuenos_Aires`;
   
   try {
     const response = await fetch(url);
@@ -149,4 +150,52 @@ export const calculateDaylightDuration = (sunriseIso, sunsetIso) => {
   const hours = Math.floor(totalMinutes / 60);
   const mins = totalMinutes % 60;
   return `${hours}h ${mins}m`;
+};
+
+/**
+ * Returns southern hemisphere astronomical/agricultural season and contextual agronomic stage.
+ */
+export const getSouthernHemisphereSeason = (date = new Date()) => {
+  const month = date.getMonth() + 1; // 1-12
+  const day = date.getDate();
+
+  // Southern hemisphere seasons:
+  // Verano: 21 Dic - 20 Mar
+  // Otoño: 21 Mar - 20 Jun
+  // Invierno: 21 Jun - 20 Sep
+  // Primavera: 21 Sep - 20 Dic
+  if ((month === 12 && day >= 21) || month === 1 || month === 2 || (month === 3 && day < 21)) {
+    return {
+      name: 'Verano',
+      badge: '☀️ Verano',
+      period: 'Diciembre - Marzo',
+      stage: 'Campaña Gruesa (Llenado de grano y Cosecha Temprana)',
+      focus: 'Evaporación crítica por altas temperaturas, orugas y chinches. Máxima vigilancia de Delta T y estrés térmico.'
+    };
+  }
+  if ((month === 3 && day >= 21) || month === 4 || month === 5 || (month === 6 && day < 21)) {
+    return {
+      name: 'Otoño',
+      badge: '🍂 Otoño',
+      period: 'Marzo - Junio',
+      stage: 'Pico de Cosecha Gruesa (Soja / Maíz)',
+      focus: 'Humedad en grano, rocíos persistentes y reducción de horas de sol para trilla limpia. Barbechos químicos de inicio.'
+    };
+  }
+  if ((month === 6 && day >= 21) || month === 7 || month === 8 || (month === 9 && day < 21)) {
+    return {
+      name: 'Invierno',
+      badge: '❄️ Invierno',
+      period: 'Junio - Septiembre',
+      stage: 'Campaña Fina (Trigo / Cebada) & Barbechos',
+      focus: 'Riesgo severo de heladas agronómicas, baja evaporación, piso frío y aplicaciones de herbicidas residuales con suelo húmedo.'
+    };
+  }
+  return {
+    name: 'Primavera',
+    badge: '🌱 Primavera',
+    period: 'Septiembre - Diciembre',
+    stage: 'Cosecha Fina (Trigo / Cebada) & Pulverizaciones de Presiembra/Postemergencia',
+    focus: 'Vientos fuertes frecuentes, frentes de tormenta rápidos y ventanas de fungicidas foliares en cereales de invierno.'
+  };
 };

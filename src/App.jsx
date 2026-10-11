@@ -6,12 +6,13 @@ import {
   Sun, Moon, Award, CheckCircle2, XCircle, AlertCircle, Play,
   Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles,
   Activity, Zap, Eye, Radio, Filter, Target, Crosshair,
-  Layers, CloudDrizzle, ChevronRight, Calculator, Check, ArrowRight
+  Layers, CloudDrizzle, ChevronRight, Calculator, Check, ArrowRight,
+  HelpCircle, Compass as CompassIcon, History
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
   getWindDirectionName, getWeatherDescription,
-  formatTimeHHMM, calculateDaylightDuration
+  formatTimeHHMM, calculateDaylightDuration, getSouthernHemisphereSeason
 } from './utils/weather';
 import { 
   evaluateConditions, calculateDeltaT, 
@@ -103,34 +104,38 @@ function App() {
   const daily = weatherData?.daily;
   const hourly = weatherData?.hourly;
 
+  // Agricultural season
+  const currentSeason = getSouthernHemisphereSeason();
+
   // Perform weekly operational analysis
   const weeklyAnalysis = weatherData ? analyzeWeeklySprayingWindows(weatherData) : null;
   const todayAnalysis = weeklyAnalysis?.today;
+  const recentRainSum = weeklyAnalysis?.recentRainSum || 0;
 
   // Compute total weekly operational hours & rainfall
   const totalWeeklyGreenHours = weeklyAnalysis?.days ? weeklyAnalysis.days.reduce((acc, d) => acc + d.greenCount, 0) : 0;
-  const totalWeeklyRainfall = daily?.precipitation_sum ? daily.precipitation_sum.reduce((acc, val) => acc + val, 0).toFixed(1) : 0;
-  const maxWeeklyGust = daily?.wind_gusts_10m_max ? Math.max(...daily.wind_gusts_10m_max) : 0;
+  const totalWeeklyRainfall = weeklyAnalysis?.days ? weeklyAnalysis.days.reduce((acc, d) => acc + d.rainSum, 0).toFixed(1) : 0;
+  const maxWeeklyGust = weeklyAnalysis?.days?.length ? Math.max(...weeklyAnalysis.days.map(d => d.maxGust)) : 0;
 
   // Next 6 hours rainfall forecast array for rainfastness calculation
   const next6HoursRain = hourly?.precipitation ? hourly.precipitation.slice(0, 6) : [];
 
-  // Compute immediate status for supported tasks
-  const currentFumigarEval = current ? evaluateConditions('fumigar', current) : null;
-  const currentPulverizarEval = current ? evaluateConditions('pulverizar', current) : null;
-  const currentHarvestEval = current ? evaluateConditions('cosechar', current) : null;
+  // Compute immediate status for supported tasks considering recent rainfall
+  const currentFumigarEval = current ? evaluateConditions('fumigar', current, recentRainSum) : null;
+  const currentPulverizarEval = current ? evaluateConditions('pulverizar', current, recentRainSum) : null;
+  const currentHarvestEval = current ? evaluateConditions('cosechar', current, recentRainSum) : null;
 
   const bestDayFumigar = weeklyAnalysis?.bestDayFumigar;
   const bestDayCosechar = weeklyAnalysis?.bestDayCosechar;
 
-  // Compute advanced agronomic diagnostics
+  // Compute advanced agronomic diagnostics with plain producer language
   const deltaT = current ? calculateDeltaT(current.temperature_2m, current.relative_humidity_2m) : null;
   const thermalInversion = current ? evaluateThermalInversion(current.wind_speed_10m) : null;
-  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m, current.soil_moisture_0_to_1cm) : null;
+  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m, current.soil_moisture_0_to_1cm, recentRainSum) : null;
   const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
   const nozzleRec = current ? getSprayNozzleRecommendation(current.wind_speed_10m, deltaT?.deltaT, current.wind_gusts_10m) : null;
   const dewRisk = current ? evaluateDewRisk(current.temperature_2m, current.dew_point_2m, current.relative_humidity_2m) : null;
-  const harvestDiag = current ? evaluateHarvestConditions(current.precipitation, current.relative_humidity_2m, current.temperature_2m, current.dew_point_2m) : null;
+  const harvestDiag = current ? evaluateHarvestConditions(current.precipitation, current.relative_humidity_2m, current.temperature_2m, current.dew_point_2m, recentRainSum) : null;
   const rainfastDiag = evaluateRainfastness(next6HoursRain);
 
   // Formatted current date string
@@ -235,9 +240,26 @@ function App() {
             AGRO DECISIONES
           </span>
         </div>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '1.15rem', letterSpacing: '0.01em' }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.75rem', letterSpacing: '0.01em' }}>
           Plataforma de Toma de Decisiones y Asesoramiento para <strong>Fumigación · Pulverización · Cosecha</strong>
         </p>
+
+        {/* Agricultural Season Banner */}
+        <div style={{ 
+          maxWidth: '680px', margin: '0 auto 1rem', 
+          background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.08), rgba(59, 130, 246, 0.08))', 
+          border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '10px', 
+          padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+          flexWrap: 'wrap', gap: '0.4rem', fontSize: '0.68rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontWeight: 800, color: 'var(--green)' }}>{currentSeason.badge}:</span>
+            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{currentSeason.stage}</span>
+          </div>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.62rem' }}>
+            Lluvias recientes (3 días): <strong style={{ color: recentRainSum > 10 ? 'var(--blue)' : 'var(--text-primary)' }}>{recentRainSum.toFixed(1)} mm</strong>
+          </span>
+        </div>
 
         {/* Search */}
         <div className="search-wrapper" style={{ maxWidth: '540px', margin: '0 auto' }} ref={searchContainerRef}>
@@ -347,7 +369,7 @@ function App() {
                     <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
                   </div>
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
-                    {selectedCity.name}: Diagnóstico en tiempo real para labores
+                    {selectedCity.name}: ¿Conviene entrar al lote hoy?
                   </h2>
                 </div>
 
@@ -504,14 +526,14 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1rem' }}>
-                  <Sparkles size={18} style={{ color: 'var(--green)' }} /> Centro de Decisiones y Consejos Agronómicos
+                  <Sparkles size={18} style={{ color: 'var(--green)' }} /> Centro de Consejos Prácticos y Decisiones de Campo
                 </h2>
                 <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  Recomendaciones técnicas inmediatas basadas en meteorología y Buenas Prácticas Agrícolas (BPA)
+                  Pautas directas y claras en lenguaje de campo, basadas en clima actual, lluvias de los últimos 3 días y época del año ({currentSeason.name}).
                 </p>
               </div>
               <span className="quick-param-badge">
-                <Target size={12} style={{ color: 'var(--green)' }} /> Guía Operativa de Lote
+                <Target size={12} style={{ color: 'var(--green)' }} /> Guía Directa de Lote
               </span>
             </div>
 
@@ -520,7 +542,7 @@ function App() {
               <div className="decision-box decision-box-green">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Crosshair size={16} style={{ color: 'var(--green)' }} /> Calibración de Boquillas y Gotas
+                    <Crosshair size={16} style={{ color: 'var(--green)' }} /> Pastillas y Calibración
                   </span>
                   <span className="decision-badge-pill" style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '1px solid var(--green-border)' }}>
                     BPA Aplicación
@@ -537,10 +559,18 @@ function App() {
                   <span className="quick-param-badge">Coadyuvante: <strong>{nozzleRec?.additive}</strong></span>
                 </div>
 
-                <div className="decision-tip-row">
-                  <Info size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: '2px' }} />
+                {/* Explicación fácil para el productor */}
+                <div className="decision-tip-row" style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                  <CheckCircle2 size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong>Consejo técnico:</strong> {nozzleRec?.details}
+                    <strong style={{ color: 'var(--green)' }}>En palabras simples:</strong> {nozzleRec?.whyExplain}
+                  </div>
+                </div>
+
+                <div className="decision-tip-row">
+                  <Info size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>Pauta técnica:</strong> {nozzleRec?.details}
                   </div>
                 </div>
               </div>
@@ -549,7 +579,7 @@ function App() {
               <div className={`decision-box decision-box-${dewRisk?.status || 'green'}`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Droplets size={16} style={{ color: 'var(--blue)' }} /> Punto de Rocío y Humedad Foliar
+                    <Droplets size={16} style={{ color: 'var(--blue)' }} /> Rocío y Follaje (Mojado de Hojas)
                   </span>
                   <span className="decision-badge-pill" style={{ 
                     background: dewRisk?.status === 'green' ? 'var(--green-bg)' : dewRisk?.status === 'yellow' ? 'var(--yellow-bg)' : 'var(--red-bg)', 
@@ -565,8 +595,15 @@ function App() {
                     {current.dew_point_2m !== undefined ? `${current.dew_point_2m}°C` : '--'}
                   </span>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                    Punto de condensación (Margen delta: <strong>{dewRisk?.diff}°C</strong>)
+                    Punto de condensación (Margen térmico: <strong>{dewRisk?.diff}°C</strong>)
                   </span>
+                </div>
+
+                <div className="decision-tip-row" style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                  <Info size={16} style={{ color: 'var(--blue)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--blue)' }}>En palabras simples:</strong> {dewRisk?.simpleExp}
+                  </div>
                 </div>
 
                 <div className="decision-tip-row">
@@ -581,7 +618,7 @@ function App() {
               <div className={`decision-box decision-box-${rainfastDiag?.status || 'green'}`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <CloudDrizzle size={16} style={{ color: 'var(--blue)' }} /> Resistencia al Lavado (6 Horas)
+                    <CloudDrizzle size={16} style={{ color: 'var(--blue)' }} /> ¿Se lava con la lluvia? (6 Horas)
                   </span>
                   <span className="decision-badge-pill" style={{ 
                     background: rainfastDiag?.status === 'green' ? 'var(--green-bg)' : rainfastDiag?.status === 'yellow' ? 'var(--yellow-bg)' : 'var(--red-bg)', 
@@ -596,8 +633,15 @@ function App() {
                   Próximas 6 horas: {next6HoursRain.reduce((a,b)=>a+b, 0).toFixed(1)} mm proyectados
                 </div>
 
+                <div className="decision-tip-row" style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                  <CheckCircle2 size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--green)' }}>En palabras simples:</strong> {rainfastDiag?.simpleExp}
+                  </div>
+                </div>
+
                 <div className="decision-tip-row">
-                  <CheckCircle2 size={16} style={{ color: rainfastDiag?.status === 'green' ? 'var(--green)' : 'var(--red)', flexShrink: 0, marginTop: '2px' }} />
+                  <Info size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <strong>Recomendación fitosanitaria:</strong> {rainfastDiag?.advice}
                   </div>
@@ -608,7 +652,7 @@ function App() {
               <div className={`decision-box decision-box-${harvestDiag?.status || 'green'}`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Calendar size={16} style={{ color: 'var(--yellow)' }} /> Dictamen de Cosecha / Trilla
+                    <Calendar size={16} style={{ color: 'var(--yellow)' }} /> ¿Se puede trillar? (Cosecha Comercial)
                   </span>
                   <span className="decision-badge-pill" style={{ 
                     background: harvestDiag?.status === 'green' ? 'var(--green-bg)' : harvestDiag?.status === 'yellow' ? 'var(--yellow-bg)' : 'var(--red-bg)', 
@@ -620,7 +664,14 @@ function App() {
                 </div>
 
                 <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                  Condición: {current.relative_humidity_2m}% HR • {Math.round(current.temperature_2m)}°C
+                  Ambiente: {current.relative_humidity_2m}% Humedad • {Math.round(current.temperature_2m)}°C • {recentRainSum.toFixed(1)} mm caídos días previos
+                </div>
+
+                <div className="decision-tip-row" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                  <HelpCircle size={16} style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--yellow)' }}>En palabras simples:</strong> {harvestDiag?.simpleExp}
+                  </div>
                 </div>
 
                 <div className="decision-tip-row">
@@ -760,7 +811,9 @@ function App() {
                       <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Lluvia</span>
                     </div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.precipitation} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>mm</span></div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Precipitación actual</span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      {recentRainSum > 0 ? `+${recentRainSum.toFixed(1)} mm (3d)` : 'Sin lluvias previas'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -772,7 +825,7 @@ function App() {
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
                   <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores Agrícolas
                 </h2>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600 }}>Evaluación en tiempo real</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600 }}>Evaluación integral (Clima + Suelo + Época)</span>
               </div>
 
               <div className="tasks-grid">
@@ -798,6 +851,11 @@ function App() {
                           <ArrowRight size={11} style={{ color: 'var(--green)' }} /> {rules.action}
                         </div>
                       )}
+                      {rules.seasonNote && (
+                        <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', marginTop: '0.2rem', fontStyle: 'italic' }}>
+                          {rules.seasonNote}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -809,10 +867,10 @@ function App() {
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                <Gauge size={18} style={{ color: 'var(--green)' }} /> Monitores Agronómicos de Aplicación y Suelo
+                <Gauge size={18} style={{ color: 'var(--green)' }} /> Monitores de Campo (Suelo, Temperatura y Aire)
               </h2>
               <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }} className="sm:inline">
-                Delta T · Inversión Térmica · Piso en Lote · Riesgo Heladas
+                Delta T · Inversión Térmica · Piso en Lote · Heladas
               </span>
             </div>
 
@@ -823,14 +881,16 @@ function App() {
                   <div className="insight-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <Gauge size={16} style={{ color: 'var(--green)' }} />
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Delta T</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Delta T (Evaporación)</span>
                     </div>
                     <span className={`status-badge badge-${deltaT.status}`}>
                       {deltaT.deltaT} °C
                     </span>
                   </div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>Zona: {deltaT.zone}</div>
-                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>{deltaT.advice}</p>
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                    {deltaT.simpleExp || deltaT.advice}
+                  </p>
                 </div>
               )}
 
@@ -847,7 +907,9 @@ function App() {
                     </span>
                   </div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>{thermalInversion.title}</div>
-                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>{thermalInversion.advice}</p>
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                    {thermalInversion.simpleExp || thermalInversion.advice}
+                  </p>
                 </div>
               )}
 
@@ -864,9 +926,11 @@ function App() {
                     </span>
                   </div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-                    {soilTraffic.title} {soilTraffic.moistureVal ? `(${soilTraffic.moistureVal})` : ''}
+                    {soilTraffic.title} {soilTraffic.recentRain ? `(${soilTraffic.recentRain})` : ''}
                   </div>
-                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>{soilTraffic.advice}</p>
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                    {soilTraffic.simpleExp || soilTraffic.advice}
+                  </p>
                 </div>
               )}
 
@@ -876,14 +940,16 @@ function App() {
                   <div className="insight-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <Snowflake size={16} style={{ color: 'var(--blue)' }} />
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Heladas</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Riesgo de Heladas</span>
                     </div>
                     <span className={`status-badge badge-${frostRisk.status}`}>
                       {frostRisk.status === 'green' ? 'SIN RIESGO' : frostRisk.status === 'yellow' ? 'ALERTA' : 'HELADA'}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>{frostRisk.title}</div>
-                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>{frostRisk.advice}</p>
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                    {frostRisk.simpleExp || frostRisk.advice}
+                  </p>
                 </div>
               )}
             </div>

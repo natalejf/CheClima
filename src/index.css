@@ -133,6 +133,7 @@
 
 .light-theme .panorama-box,
 .light-theme .metric-box,
+.light-theme .temp-display-card,
 .light-theme .state-card,
 .light-theme .card-temp-pill,
 .light-theme .wind-direction-pill,
@@ -578,8 +579,8 @@ h1, h2, h3, h4 {
 }
 
 .temp-display-card {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid var(--glass-border);
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.2);
   border-radius: var(--radius-md);
   padding: 1rem;
   display: flex;

@@ -244,22 +244,6 @@ function App() {
           Plataforma de Toma de Decisiones y Asesoramiento para <strong>Fumigación · Pulverización · Cosecha</strong>
         </p>
 
-        {/* Agricultural Season Banner */}
-        <div style={{ 
-          maxWidth: '680px', margin: '0 auto 1rem', 
-          background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.08), rgba(59, 130, 246, 0.08))', 
-          border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '10px', 
-          padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-          flexWrap: 'wrap', gap: '0.4rem', fontSize: '0.68rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ fontWeight: 800, color: 'var(--green)' }}>{currentSeason.badge}:</span>
-            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{currentSeason.stage}</span>
-          </div>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.62rem' }}>
-            Lluvias recientes (3 días): <strong style={{ color: recentRainSum > 10 ? 'var(--blue)' : 'var(--text-primary)' }}>{recentRainSum.toFixed(1)} mm</strong>
-          </span>
-        </div>
 
         {/* Search */}
         <div className="search-wrapper" style={{ maxWidth: '540px', margin: '0 auto' }} ref={searchContainerRef}>

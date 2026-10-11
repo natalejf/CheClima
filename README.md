@@ -1,16 +1,68 @@
-# React + Vite
+# CheClima — Monitor Agroclimático y Toma de Decisiones
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**CheClima** es una plataforma web agroclimática integral diseñada para que el productor y contratista rural argentino cuente en un único lugar con un panorama claro para la toma de decisiones sobre **Fumigación**, **Pulverización** y **Cosecha**.
 
-Currently, two official plugins are available:
+Toda la información se obtiene en tiempo real a partir de **APIs gratuitas y modelos públicos** (Open-Meteo, ECMWF y Windy), combinados con modelos agronómicos de Buenas Prácticas Agrícolas (BPA).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🌾 Funcionalidades Principales
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Eliminación del módulo de siembra:**
+   - La plataforma se enfoca 100% en la toma de decisiones operativas inmediatas: **Fumigación de precisión**, **Pulverización terrestre** y **Cosecha/Trilla**.
 
-## Expanding the Oxlint configuration
+2. **Centro de Decisiones y Asesoramiento Agronómico:**
+   - **Calibración de Boquillas y Gotas:** Recomendación de tipo de pastilla (Abanico Plano estándar, Cono Hueco, Antideriva con Aire Inducido AI/TTI/IDK), presión operativa de trabajo (bar), tamaño de gota y coadyuvante según velocidad del viento, ráfagas y Delta T.
+   - **Punto de Rocío y Humedad Foliar:** Cálculo en tiempo real de temperatura de condensación y margen delta para evitar escurrimiento de caldo o pérdidas en trilla por hojas mojadas.
+   - **Resistencia al Lavado (Rainfastness - 6h):** Análisis predictivo de precipitaciones en las próximas 6 horas para autorizar o suspender aplicaciones de fitosanitarios.
+   - **Dictamen de Cosecha Comercial:** Dictamen técnico sobre aptitud de trilla considerando humedad relativa ambiente y riesgo de sobrehumedad en tolva.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+3. **Calculadora Rápida de Pulverización y Caldo:**
+   - Cálculo automático de hectáreas cubiertas por capacidad de tanque (L) y tasa de aplicación (L/ha).
+   - Cálculo de producto fitosanitario comercial y dosis requerida de coadyuvante/antievaporante.
+
+4. **Monitores Agronómicos en Vivo:**
+   - **Delta T (°C):** Fórmula Stull de psicrometría para evaluar evaporación de gota y riesgo de inversión.
+   - **Riesgo de Inversión Térmica:** Detección de calma chicha (< 3 km/h) y derivas gaseosas.
+   - **Piso en Lote y Tránsito:** Humedad volumétrica superficial del suelo (0-1 cm) y precipitaciones acumuladas.
+   - **Alerta de Heladas:** Detección de heladas meteorológicas y agronómicas.
+
+5. **Planificador Semanal a 7 Días:**
+   - Desglose día por día con semáforos de labor (Fumigación, Pulverización, Cosecha).
+   - Identificación de los mejores días de la semana y ventanas horarias continuas recomendadas.
+   - Evolución y giros del viento por franjas horarias (mañana, tarde y noche).
+
+6. **Radar Meteorológico Satelital Windy ECMWF:**
+   - Mapa interactivo integrado para monitoreo de frentes de viento y tormentas.
+
+7. **Diseño Responsive Desktop & Mobile:**
+   - Interfaz con modo oscuro y modo claro, microanimaciones y accesos rápidos a localidades agrícolas líderes (Necochea, Pergamino, Rosario, Tandil, Balcarce, Río Cuarto, Marcos Juárez, Rafaela, Venado Tuerto, etc.).
+
+---
+
+## 🚀 Tecnologías
+
+- **React + Vite**
+- **Vanilla CSS (Design Tokens, Glassmorphism, Responsive)**
+- **Lucide Icons**
+- **Open-Meteo Forecast & Geocoding APIs (Gratuitas)**
+- **Windy Map Embed**
+
+---
+
+## 🛠️ Instalación y Ejecución
+
+```bash
+# Instalar dependencias
+npm install
+
+# Iniciar servidor de desarrollo
+npm run dev
+
+# Generar build de producción
+npm run build
+```
+
+---
+
+Desarrollado para el sector agropecuario por **Juan Francisco Natale**.

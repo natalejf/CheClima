@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wind, Droplets, MapPin, Navigation, Thermometer, 
-  CloudRain, Calendar, Clock, Search, X, Sprout, ShieldAlert,
+  CloudRain, Calendar, Search, X, ShieldAlert,
   Gauge, AlertTriangle, Truck, Snowflake, Sunrise, Sunset,
   Sun, Moon, Award, CheckCircle2, XCircle, AlertCircle, Play,
   Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles,
-  Activity, Zap, Eye, Radio, Filter
+  Activity, Zap, Eye, Radio, Filter, Target, Crosshair,
+  Layers, CloudDrizzle, ChevronRight, Calculator, Check, ArrowRight
 } from 'lucide-react';
 import { 
   fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
@@ -15,7 +16,9 @@ import {
 import { 
   evaluateConditions, calculateDeltaT, 
   evaluateThermalInversion, evaluateSoilTrafficability, 
-  evaluateFrostRisk, analyzeWeeklySprayingWindows
+  evaluateFrostRisk, analyzeWeeklySprayingWindows,
+  getSprayNozzleRecommendation, evaluateDewRisk,
+  evaluateHarvestConditions, evaluateRainfastness
 } from './utils/rules';
 
 function App() {
@@ -30,6 +33,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [plannerFilter, setPlannerFilter] = useState('todos');
   const [heroTask, setHeroTask] = useState('fumigar');
+
+  // Interactive Calibrator / Calculator state for spraying
+  const [calcTankVolume, setCalcTankVolume] = useState(3000); // Litros tanque
+  const [calcTargetRate, setCalcTargetRate] = useState(60);   // L/ha caldo
+  const [calcDosePerHa, setCalcDosePerHa] = useState(1.5);   // L/ha producto comercial
 
   const searchContainerRef = useRef(null);
 
@@ -93,25 +101,37 @@ function App() {
 
   const current = weatherData?.current;
   const daily = weatherData?.daily;
+  const hourly = weatherData?.hourly;
 
   // Perform weekly operational analysis
   const weeklyAnalysis = weatherData ? analyzeWeeklySprayingWindows(weatherData) : null;
   const todayAnalysis = weeklyAnalysis?.today;
-  const bestDay = weeklyAnalysis?.bestDayOfWeek;
 
   // Compute total weekly operational hours & rainfall
   const totalWeeklyGreenHours = weeklyAnalysis?.days ? weeklyAnalysis.days.reduce((acc, d) => acc + d.greenCount, 0) : 0;
   const totalWeeklyRainfall = daily?.precipitation_sum ? daily.precipitation_sum.reduce((acc, val) => acc + val, 0).toFixed(1) : 0;
   const maxWeeklyGust = daily?.wind_gusts_10m_max ? Math.max(...daily.wind_gusts_10m_max) : 0;
 
-  // Compute immediate status for all tasks
-  const currentSprayEval = current ? evaluateConditions('fumigar', current) : null;
-  const currentSowEval = current ? evaluateConditions('sembrar', current) : null;
+  // Next 6 hours rainfall forecast array for rainfastness calculation
+  const next6HoursRain = hourly?.precipitation ? hourly.precipitation.slice(0, 6) : [];
+
+  // Compute immediate status for supported tasks
+  const currentFumigarEval = current ? evaluateConditions('fumigar', current) : null;
+  const currentPulverizarEval = current ? evaluateConditions('pulverizar', current) : null;
   const currentHarvestEval = current ? evaluateConditions('cosechar', current) : null;
 
   const bestDayFumigar = weeklyAnalysis?.bestDayFumigar;
-  const bestDaySembrar = weeklyAnalysis?.bestDaySembrar;
   const bestDayCosechar = weeklyAnalysis?.bestDayCosechar;
+
+  // Compute advanced agronomic diagnostics
+  const deltaT = current ? calculateDeltaT(current.temperature_2m, current.relative_humidity_2m) : null;
+  const thermalInversion = current ? evaluateThermalInversion(current.wind_speed_10m) : null;
+  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m, current.soil_moisture_0_to_1cm) : null;
+  const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
+  const nozzleRec = current ? getSprayNozzleRecommendation(current.wind_speed_10m, deltaT?.deltaT, current.wind_gusts_10m) : null;
+  const dewRisk = current ? evaluateDewRisk(current.temperature_2m, current.dew_point_2m, current.relative_humidity_2m) : null;
+  const harvestDiag = current ? evaluateHarvestConditions(current.precipitation, current.relative_humidity_2m, current.temperature_2m, current.dew_point_2m) : null;
+  const rainfastDiag = evaluateRainfastness(next6HoursRain);
 
   // Formatted current date string
   const getFormattedTodayDate = () => {
@@ -133,30 +153,23 @@ function App() {
     return days[date.getDay()];
   };
 
-  const getBestWeeklyTimesForTask = (weeklyAnalysis, filter) => {
-    if (!weeklyAnalysis?.days) return [];
+  const getBestWeeklyTimesForTask = (analysis, filter) => {
+    if (!analysis?.days) return [];
     
-    return weeklyAnalysis.days.map((dayInfo, idx) => {
+    return analysis.days.map((dayInfo, idx) => {
       const dayName = getDayName(dayInfo.dateStr, idx);
       const isFumig = filter === 'fumigar' || filter === 'pulverizar';
-      const isSow = filter === 'sembrar';
       const isHarvest = filter === 'cosechar';
 
       if (isFumig) {
         if (dayInfo.windows?.length > 0) {
           return { dayName, windows: dayInfo.windows.join(' | '), status: dayInfo.overallStatus };
         }
-      } else if (isSow) {
-        if (dayInfo.sowEval?.windows?.length > 0 && dayInfo.sowEval.status !== 'red') {
-          return { dayName, windows: dayInfo.sowEval.windows.join(' | '), status: dayInfo.sowEval.status };
-        } else if (dayInfo.sowEval?.status !== 'red') {
-          return { dayName, windows: 'Horarios diurnos (Temp > 10°C)', status: dayInfo.sowEval.status };
-        }
       } else if (isHarvest) {
         if (dayInfo.harvestEval?.windows?.length > 0 && dayInfo.harvestEval.status !== 'red') {
           return { dayName, windows: dayInfo.harvestEval.windows.join(' | '), status: dayInfo.harvestEval.status };
         } else if (dayInfo.harvestEval?.status !== 'red') {
-          return { dayName, windows: '12:00 a 18:00 hs (Menor humedad)', status: dayInfo.harvestEval.status };
+          return { dayName, windows: '12:00 a 18:00 hs (Follaje seco)', status: dayInfo.harvestEval.status };
         }
       }
       return null;
@@ -168,25 +181,17 @@ function App() {
     return `${date.getDate()}/${date.getMonth() + 1}`;
   };
 
-  // Compute operational insights
-  const deltaT = current ? calculateDeltaT(current.temperature_2m, current.relative_humidity_2m) : null;
-  const thermalInversion = current ? evaluateThermalInversion(current.wind_speed_10m) : null;
-  const soilTraffic = current ? evaluateSoilTrafficability(current.precipitation, current.relative_humidity_2m) : null;
-  const frostRisk = current ? evaluateFrostRisk(current.temperature_2m, daily?.temperature_2m_min[0]) : null;
-
-  // Get current time
-  const getCurrentTime = () => {
-    const now = new Date();
-    return now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-  };
+  // Calculator outputs
+  const calcHectaresPerTank = calcTargetRate > 0 ? (calcTankVolume / calcTargetRate).toFixed(1) : 0;
+  const calcTotalProductPerTank = calcTargetRate > 0 ? ((calcTankVolume / calcTargetRate) * calcDosePerHa).toFixed(1) : 0;
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ minHeight: '100vh', padding: '1rem', maxWidth: '1280px', margin: '0 auto' }}>
+      
       {/* ═══ HEADER ═══ */}
-      <header className="app-header glass-panel mb-6 py-6 px-4 md:px-8" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        
-        {/* Theme Toggle Button */}
-        <button 
+      <header className="glass-panel app-header mb-6" style={{ padding: '1.5rem 1.25rem', textAlign: 'center', position: 'relative' }}>
+        {/* Dark/Light toggle */}
+        <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           style={{
             position: 'absolute',
@@ -212,35 +217,35 @@ function App() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
           <div style={{ 
-            width: '38px', height: '38px', borderRadius: '10px', 
+            width: '40px', height: '40px', borderRadius: '10px', 
             background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15))', 
             border: '1px solid rgba(34, 197, 94, 0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <Sprout size={22} style={{ color: 'var(--green)' }} />
+            <Wind size={22} style={{ color: 'var(--green)' }} />
           </div>
-          <h1 className="brand-title" style={{ fontSize: '1.75rem', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <h1 className="brand-title" style={{ fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
             CheClima
           </h1>
           <span style={{ 
             fontSize: '0.55rem', fontWeight: 800, background: 'var(--green-bg)', 
-            color: 'var(--green)', padding: '0.15rem 0.5rem', borderRadius: '99px', 
+            color: 'var(--green)', padding: '0.15rem 0.55rem', borderRadius: '99px', 
             border: '1px solid rgba(34, 197, 94, 0.3)', letterSpacing: '0.05em', textTransform: 'uppercase'
           }}>
-            MONITOR
+            AGRO DECISIONES
           </span>
         </div>
-        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '1.15rem', letterSpacing: '0.01em' }}>
-          Monitor agroclimático para Fumigación · Pulverización · Siembra · Cosecha
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '1.15rem', letterSpacing: '0.01em' }}>
+          Plataforma de Toma de Decisiones y Asesoramiento para <strong>Fumigación · Pulverización · Cosecha</strong>
         </p>
 
         {/* Search */}
-        <div className="search-wrapper" style={{ maxWidth: '520px', margin: '0 auto' }} ref={searchContainerRef}>
+        <div className="search-wrapper" style={{ maxWidth: '540px', margin: '0 auto' }} ref={searchContainerRef}>
           <div className="search-input-box" style={{ borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Buscar localidad (ej. Necochea, Balcarce, Pergamino)..."
+              placeholder="Buscar localidad agrícola (ej. Necochea, Balcarce, Pergamino, Rosario)..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -286,9 +291,25 @@ function App() {
           )}
         </div>
 
+        {/* Quick Popular Agricultural Cities Chips */}
+        <div style={{ maxWidth: '780px', margin: '0.85rem auto 0' }}>
+          <div className="city-chips-scroll">
+            {POPULAR_CITIES.map((c, i) => (
+              <button
+                key={i}
+                className={`city-chip-btn ${selectedCity.name === c.name ? 'active' : ''}`}
+                onClick={() => handleSelectCity(c)}
+              >
+                <MapPin size={11} />
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Location Pill */}
         <div style={{ 
-          marginTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+          marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
           fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)'
         }}>
           <MapPin size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />
@@ -301,7 +322,7 @@ function App() {
             boxShadow: '0 0 6px rgba(34,197,94,0.5)', display: 'inline-block'
           }} />
           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
-            LIVE
+            EN VIVO · OPEN-METEO
           </span>
         </div>
       </header>
@@ -309,28 +330,28 @@ function App() {
       {loading ? (
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
           <div className="loader" style={{ marginBottom: '1rem' }}></div>
-          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.85rem' }}>Calculando ventanas aptas...</p>
-          <p style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.72rem', marginTop: '0.25rem' }}>Conectando con modelos meteorológicos para {selectedCity.name}</p>
+          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.85rem' }}>Calculando ventanas operativas y diagnóstico...</p>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.72rem', marginTop: '0.25rem' }}>Modelando condiciones atmosféricas y edáficas para {selectedCity.name}</p>
         </div>
       ) : current ? (
         <>
-          {/* ═══ HERO PANORAMA ═══ */}
+          {/* ═══ HERO PANORAMA DE DECISIÓN RÁPIDA ═══ */}
           <div className="glass-panel hero-panorama-card mb-6">
-            {/* Top Row: Title + Task Selector + Status Badges */}
+            {/* Top Row: Title + Task Selector */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
                     <Activity size={14} style={{ color: 'var(--green)' }} />
-                    <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Campo</span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Decisión Operativa</span>
                     <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
                   </div>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
-                    {selectedCity.name}: ¿Conviene realizar labores hoy?
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
+                    {selectedCity.name}: Diagnóstico en tiempo real para labores
                   </h2>
                 </div>
 
-                {/* Labor Tabs for Panorama */}
+                {/* Labor Tabs for Panorama: Fumigar / Pulverizar / Cosechar */}
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ 
                     fontSize: '0.62rem', 
@@ -345,12 +366,12 @@ function App() {
                     gap: '0.25rem',
                     flexShrink: 0 
                   }}>
-                    <Filter size={11} style={{ color: 'var(--accent)' }} /> Filtrar por labor:
+                    <Filter size={11} style={{ color: 'var(--accent)' }} /> Labor activa:
                   </span>
                   {[
-                    { id: 'fumigar', label: 'Fumigar', icon: Wind, eval: currentSprayEval },
-                    { id: 'sembrar', label: 'Sembrar', icon: Sprout, eval: currentSowEval },
-                    { id: 'cosechar', label: 'Cosechar', icon: Calendar, eval: currentHarvestEval }
+                    { id: 'fumigar', label: 'Fumigación', icon: Wind, eval: currentFumigarEval },
+                    { id: 'pulverizar', label: 'Pulverización', icon: Crosshair, eval: currentPulverizarEval },
+                    { id: 'cosechar', label: 'Cosecha', icon: Calendar, eval: currentHarvestEval }
                   ].map((task) => {
                     const TaskIcon = task.icon;
                     const isActive = heroTask === task.id;
@@ -389,15 +410,14 @@ function App() {
               <div className="panorama-box green-highlight">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
                   <Play size={13} style={{ color: 'var(--green)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Apta</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Apta Hoy</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                  {heroTask === 'fumigar' && (todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima')}
-                  {heroTask === 'sembrar' && (todayAnalysis?.sowEval?.windows?.length > 0 ? todayAnalysis.sowEval.windows.join(' | ') : (todayAnalysis?.sowEval?.status !== 'red' ? 'Horario diurno (Temp > 10°C)' : 'Sin ventana apta'))}
+                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && (todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima')}
                   {heroTask === 'cosechar' && (todayAnalysis?.harvestEval?.windows?.length > 0 ? todayAnalysis.harvestEval.windows.join(' | ') : (todayAnalysis?.harvestEval?.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana apta'))}
                 </div>
                 <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Horario apto para {heroTask === 'fumigar' ? 'fumigar/pulverizar' : heroTask === 'sembrar' ? 'siembra' : 'cosecha'}
+                  Franja horaria recomendada para {heroTask === 'cosechar' ? 'cosecha' : 'aplicaciones'}
                 </span>
               </div>
 
@@ -405,11 +425,10 @@ function App() {
               <div className="panorama-box amber-highlight">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
                   <ShieldAlert size={13} style={{ color: 'var(--yellow)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--yellow)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnóstico</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--yellow)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnóstico de Campo</span>
                 </div>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                  {heroTask === 'fumigar' && currentSprayEval?.message}
-                  {heroTask === 'sembrar' && currentSowEval?.message}
+                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && currentFumigarEval?.message}
                   {heroTask === 'cosechar' && currentHarvestEval?.message}
                 </div>
                 <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>
@@ -417,11 +436,11 @@ function App() {
                 </span>
               </div>
 
-              {/* Sol */}
+              {/* Sol y Luz Solar */}
               <div className="panorama-box blue-highlight">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
                   <Sun size={13} style={{ color: 'var(--blue)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--blue)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Luz Solar</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--blue)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Luz Solar y Rocío</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginTop: '0.15rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -434,7 +453,7 @@ function App() {
                   </div>
                 </div>
                 <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.35rem', fontWeight: 500 }}>
-                  Duración: <strong style={{ color: 'var(--text-primary)' }}>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong>
+                  Duración: <strong style={{ color: 'var(--text-primary)' }}>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong> • Rocío: {dewRisk?.level || 'Seco'}
                 </span>
               </div>
             </div>
@@ -452,26 +471,16 @@ function App() {
                       background: 'var(--yellow-bg)', padding: '0.15rem 0.55rem', borderRadius: '99px',
                       border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
                     }}>
-                      🏆 Mejor día para {heroTask === 'fumigar' ? 'Fumigar' : heroTask === 'sembrar' ? 'Sembrar' : 'Cosechar'}
+                      🏆 Mejor día de la semana para {heroTask === 'cosechar' ? 'Cosechar' : 'Fumigar / Pulverizar'}
                     </span>
                   </div>
-                  {heroTask === 'fumigar' && bestDayFumigar && (
+                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && bestDayFumigar && (
                     <>
                       <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
                         {getDayName(bestDayFumigar.dateStr, bestDayFumigar.dayIndex)} ({formatDateShort(bestDayFumigar.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDayFumigar.greenCount} hs óptimas</span>
                       </div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
-                        {bestDayFumigar.windows.length > 0 ? `Ventanas: ${bestDayFumigar.windows.join(' y ')}.` : 'Menor viento y lluvias.'} Viento máx: {bestDayFumigar.maxWind} km/h
-                      </div>
-                    </>
-                  )}
-                  {heroTask === 'sembrar' && bestDaySembrar && (
-                    <>
-                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
-                        {getDayName(bestDaySembrar.dateStr, bestDaySembrar.dayIndex)} ({formatDateShort(bestDaySembrar.dateStr)}) — <span style={{ color: bestDaySembrar.sowEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDaySembrar.sowEval.label}</span>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
-                        {bestDaySembrar.sowEval.reason} • Temp Mín: {Math.round(bestDaySembrar.minTemp)}°C • Lluvia: {bestDaySembrar.rainSum} mm
+                        {bestDayFumigar.windows.length > 0 ? `Ventanas recomendadas: ${bestDayFumigar.windows.join(' y ')}.` : 'Condiciones con menor viento.'} Viento máx: {bestDayFumigar.maxWind} km/h • Ráfagas: {bestDayFumigar.maxGust} km/h
                       </div>
                     </>
                   )}
@@ -490,9 +499,211 @@ function App() {
             )}
           </div>
 
-          {/* ═══ MAIN GRID: Weather + Tasks ═══ */}
+          {/* ═══ CENTRO DE CONSEJOS Y TOMA DE DECISIONES AGRONÓMICAS ═══ */}
+          <div className="glass-panel mb-6">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1rem' }}>
+                  <Sparkles size={18} style={{ color: 'var(--green)' }} /> Centro de Decisiones y Consejos Agronómicos
+                </h2>
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                  Recomendaciones técnicas inmediatas basadas en meteorología y Buenas Prácticas Agrícolas (BPA)
+                </p>
+              </div>
+              <span className="quick-param-badge">
+                <Target size={12} style={{ color: 'var(--green)' }} /> Guía Operativa de Lote
+              </span>
+            </div>
+
+            <div className="decision-center-grid">
+              {/* Caja 1: Recomendación de Pastillas & Calibración de Pulverizadora */}
+              <div className="decision-box decision-box-green">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Crosshair size={16} style={{ color: 'var(--green)' }} /> Calibración de Boquillas y Gotas
+                  </span>
+                  <span className="decision-badge-pill" style={{ background: 'var(--green-bg)', color: 'var(--green)', border: '1px solid var(--green-border)' }}>
+                    BPA Aplicación
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                  {nozzleRec?.nozzleType}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <span className="quick-param-badge">Presión: <strong>{nozzleRec?.pressure}</strong></span>
+                  <span className="quick-param-badge">Tamaño gota: <strong>{nozzleRec?.dropletSize}</strong></span>
+                  <span className="quick-param-badge">Coadyuvante: <strong>{nozzleRec?.additive}</strong></span>
+                </div>
+
+                <div className="decision-tip-row">
+                  <Info size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>Consejo técnico:</strong> {nozzleRec?.details}
+                  </div>
+                </div>
+              </div>
+
+              {/* Caja 2: Punto de Rocío & Follaje */}
+              <div className={`decision-box decision-box-${dewRisk?.status || 'green'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Droplets size={16} style={{ color: 'var(--blue)' }} /> Punto de Rocío y Humedad Foliar
+                  </span>
+                  <span className="decision-badge-pill" style={{ 
+                    background: dewRisk?.status === 'green' ? 'var(--green-bg)' : dewRisk?.status === 'yellow' ? 'var(--yellow-bg)' : 'var(--red-bg)', 
+                    color: dewRisk?.status === 'green' ? 'var(--green)' : dewRisk?.status === 'yellow' ? 'var(--yellow)' : 'var(--red)',
+                    border: '1px solid rgba(148,163,184,0.15)'
+                  }}>
+                    {dewRisk?.level}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                    {current.dew_point_2m !== undefined ? `${current.dew_point_2m}°C` : '--'}
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                    Punto de condensación (Margen delta: <strong>{dewRisk?.diff}°C</strong>)
+                  </span>
+                </div>
+
+                <div className="decision-tip-row">
+                  <AlertCircle size={16} style={{ color: dewRisk?.status === 'green' ? 'var(--green)' : 'var(--yellow)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>Impacto en labor:</strong> {dewRisk?.advice}
+                  </div>
+                </div>
+              </div>
+
+              {/* Caja 3: Lavado por Lluvia (Rainfastness) */}
+              <div className={`decision-box decision-box-${rainfastDiag?.status || 'green'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <CloudDrizzle size={16} style={{ color: 'var(--blue)' }} /> Resistencia al Lavado (6 Horas)
+                  </span>
+                  <span className="decision-badge-pill" style={{ 
+                    background: rainfastDiag?.status === 'green' ? 'var(--green-bg)' : rainfastDiag?.status === 'yellow' ? 'var(--yellow-bg)' : 'var(--red-bg)', 
+                    color: rainfastDiag?.status === 'green' ? 'var(--green)' : rainfastDiag?.status === 'yellow' ? 'var(--yellow)' : 'var(--red)',
+                    border: '1px solid rgba(148,163,184,0.15)'
+                  }}>
+                    {rainfastDiag?.risk}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                  Próximas 6 horas: {next6HoursRain.reduce((a,b)=>a+b, 0).toFixed(1)} mm proyectados
+                </div>
+
+                <div className="decision-tip-row">
+                  <CheckCircle2 size={16} style={{ color: rainfastDiag?.status === 'green' ? 'var(--green)' : 'var(--red)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>Recomendación fitosanitaria:</strong> {rainfastDiag?.advice}
+                  </div>
+                </div>
+              </div>
+
+              {/* Caja 4: Diagnóstico de Cosecha Comercial */}
+              <div className={`decision-box decision-box-${harvestDiag?.status || 'green'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-white)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Calendar size={16} style={{ color: 'var(--yellow)' }} /> Dictamen de Cosecha / Trilla
+                  </span>
+                  <span className="decision-badge-pill" style={{ 
+                    background: harvestDiag?.status === 'green' ? 'var(--green-bg)' : harvestDiag?.status === 'yellow' ? 'var(--yellow-bg)' : 'var(--red-bg)', 
+                    color: harvestDiag?.status === 'green' ? 'var(--green)' : harvestDiag?.status === 'yellow' ? 'var(--yellow)' : 'var(--red)',
+                    border: '1px solid rgba(148,163,184,0.15)'
+                  }}>
+                    {harvestDiag?.verdict}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                  Condición: {current.relative_humidity_2m}% HR • {Math.round(current.temperature_2m)}°C
+                </div>
+
+                <div className="decision-tip-row">
+                  <CheckSquare size={16} style={{ color: harvestDiag?.status === 'green' ? 'var(--green)' : 'var(--yellow)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>Pauta comercial:</strong> {harvestDiag?.advice}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO ═══ */}
+          <div className="glass-panel mb-6">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <Calculator size={18} style={{ color: 'var(--green)' }} /> Calculador Rápido de Caldo y Cobertura (Tanqueada)
+                </h2>
+                <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                  Calculá cuántas hectáreas cubre tu pulverizadora y los litros de agroquímico necesarios por tanque
+                </p>
+              </div>
+              <span className="quick-param-badge">Herramienta Operativa</span>
+            </div>
+
+            <div className="calc-grid">
+              <div className="calc-input-group">
+                <label>Capacidad del Tanque (Litros)</label>
+                <input 
+                  type="number" 
+                  value={calcTankVolume} 
+                  onChange={(e) => setCalcTankVolume(Number(e.target.value) || 0)}
+                  placeholder="3000"
+                />
+              </div>
+
+              <div className="calc-input-group">
+                <label>Volumen de Aplicación (L/ha)</label>
+                <input 
+                  type="number" 
+                  value={calcTargetRate} 
+                  onChange={(e) => setCalcTargetRate(Number(e.target.value) || 0)}
+                  placeholder="60"
+                />
+              </div>
+
+              <div className="calc-input-group">
+                <label>Dosis de Producto (L o Kg / ha)</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  value={calcDosePerHa} 
+                  onChange={(e) => setCalcDosePerHa(Number(e.target.value) || 0)}
+                  placeholder="1.5"
+                />
+              </div>
+            </div>
+
+            <div className="calc-result-box" style={{ marginTop: '0.85rem' }}>
+              <div>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Hectáreas por Tanqueada:</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--green)' }}>
+                  {calcHectaresPerTank} <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>ha</span>
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Producto Comercial por Tanque:</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--blue)' }}>
+                  {calcTotalProductPerTank} <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>L / Kg</span>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', maxWidth: '300px' }}>
+                💡 En días de Delta T elevado ({deltaT?.deltaT}°C), agregar <strong>{(calcHectaresPerTank * 0.5).toFixed(1)} L</strong> de antievaporante al caldo.
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ MAIN GRID: CLIMA ACTUAL + SEMÁFORO DE LABORES ═══ */}
           <div className="main-grid mb-6">
-            {/* Current Weather */}
+            {/* Clima Actual */}
             <div className="glass-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
@@ -539,7 +750,7 @@ function App() {
                       <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Humedad</span>
                     </div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.relative_humidity_2m}%</div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Humedad relativa</span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Pto Rocío: {current.dew_point_2m}°C</span>
                   </div>
 
                   {/* Precipitation */}
@@ -559,28 +770,34 @@ function App() {
             <div className="glass-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores
+                  <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores Agrícolas
                 </h2>
                 <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600 }}>Evaluación en tiempo real</span>
               </div>
 
               <div className="tasks-grid">
-                {['fumigar', 'pulverizar', 'sembrar', 'cosechar'].map((task) => {
-                  const rules = evaluateConditions(task, current);
+                {[
+                  { task: 'fumigar', label: 'Fumigación de precisión', icon: Wind, rules: currentFumigarEval },
+                  { task: 'pulverizar', label: 'Pulverización terrestre', icon: Crosshair, rules: currentPulverizarEval },
+                  { task: 'cosechar', label: 'Cosecha y trilla de granos', icon: Calendar, rules: currentHarvestEval }
+                ].map(({ task, label, icon: TaskIcon, rules }) => {
                   return (
                     <div key={task} className={`state-card state-border-${rules.status}`}>
                       <div className="state-header">
-                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', textTransform: 'capitalize' }}>
-                          {(task === 'fumigar' || task === 'pulverizar') && <Wind size={15} style={{ color: 'var(--green)' }} />}
-                          {task === 'sembrar' && <Sprout size={15} style={{ color: 'var(--accent-secondary)' }} />}
-                          {task === 'cosechar' && <Calendar size={15} style={{ color: 'var(--yellow)' }} />}
-                          {task}
+                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+                          <TaskIcon size={15} style={{ color: rules.status === 'green' ? 'var(--green)' : rules.status === 'yellow' ? 'var(--yellow)' : 'var(--red)' }} />
+                          {label}
                         </span>
                         <span className={`status-badge badge-${rules.status}`}>
                           {rules.status === 'green' ? 'APTO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.4rem', lineHeight: 1.5 }}>{rules.message}</p>
+                      <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>{rules.message}</p>
+                      {rules.action && (
+                        <div style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <ArrowRight size={11} style={{ color: 'var(--green)' }} /> {rules.action}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -588,13 +805,15 @@ function App() {
             </div>
           </div>
 
-          {/* ═══ MONITORES AGRONÓMICOS ═══ */}
+          {/* ═══ MONITORES AGRONÓMICOS AVANZADOS ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                <Gauge size={18} style={{ color: 'var(--green)' }} /> Monitores de Aplicación
+                <Gauge size={18} style={{ color: 'var(--green)' }} /> Monitores Agronómicos de Aplicación y Suelo
               </h2>
-              <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600, display: 'none' }} className="sm:inline">Delta T · Inversión · Piso · Heladas</span>
+              <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }} className="sm:inline">
+                Delta T · Inversión Térmica · Piso en Lote · Riesgo Heladas
+              </span>
             </div>
 
             <div className="insights-grid">
@@ -632,7 +851,7 @@ function App() {
                 </div>
               )}
 
-              {/* Soil */}
+              {/* Soil / Piso en Lote */}
               {soilTraffic && (
                 <div className={`insight-card insight-border-${soilTraffic.status}`}>
                   <div className="insight-header">
@@ -644,7 +863,9 @@ function App() {
                       {soilTraffic.status === 'green' ? 'TRANSITABLE' : soilTraffic.status === 'yellow' ? 'PRECAUCIÓN' : 'BARRO'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>{soilTraffic.title}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+                    {soilTraffic.title} {soilTraffic.moistureVal ? `(${soilTraffic.moistureVal})` : ''}
+                  </div>
                   <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>{soilTraffic.advice}</p>
                 </div>
               )}
@@ -668,20 +889,21 @@ function App() {
             </div>
           </div>
 
-          {/* ═══ PLANIFICADOR SEMANAL ═══ */}
+          {/* ═══ PLANIFICADOR SEMANAL (FUMIGAR / PULVERIZAR / COSECHAR) ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <div>
                   <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                    <Calendar size={18} style={{ color: 'var(--green)' }} /> Planificador Semanal
+                    <Calendar size={18} style={{ color: 'var(--green)' }} /> Planificador Operativo Semanal
                   </h2>
                   <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    Seleccioná una labor para filtrar los mejores horarios de la semana de forma rápida
+                    Filtrá por labor para consultar rápidamente las ventanas óptimas en los próximos 7 días
                   </p>
                 </div>
-                <span style={{ 
-                  fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary)', 
+
+                <span style={{
+                  fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)',
                   background: 'var(--bg-elevated)', padding: '0.3rem 0.65rem', borderRadius: '99px',
                   border: '1px solid rgba(148,163,184,0.12)'
                 }}>
@@ -693,10 +915,9 @@ function App() {
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 {[
                   { id: 'todos', label: 'Todas las labores', icon: Calendar },
-                  { id: 'fumigar', label: 'Fumigar', icon: Wind },
-                  { id: 'pulverizar', label: 'Pulverizar', icon: Wind },
-                  { id: 'sembrar', label: 'Sembrar', icon: Sprout },
-                  { id: 'cosechar', label: 'Cosechar', icon: Calendar }
+                  { id: 'fumigar', label: 'Fumigación', icon: Wind },
+                  { id: 'pulverizar', label: 'Pulverización', icon: Crosshair },
+                  { id: 'cosechar', label: 'Cosecha', icon: Calendar }
                 ].map((item) => {
                   const IconComponent = item.icon;
                   const isActive = plannerFilter === item.id;
@@ -739,7 +960,7 @@ function App() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--green)' }}>
                     <CheckCircle2 size={15} />
-                    <span>Mejores Horarios Semanales para {plannerFilter.charAt(0).toUpperCase() + plannerFilter.slice(1)}</span>
+                    <span>Mejores Horarios Semanales para {plannerFilter === 'cosechar' ? 'Cosecha' : plannerFilter === 'pulverizar' ? 'Pulverización' : 'Fumigación'}</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                     {getBestWeeklyTimesForTask(weeklyAnalysis, plannerFilter).length > 0 ? (
@@ -758,7 +979,7 @@ function App() {
                       ))
                     ) : (
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                        Sin ventanas óptimas registradas para esta tarea en los próximos 7 días.
+                        Sin ventanas óptimas registradas para esta labor en los próximos 7 días.
                       </span>
                     )}
                   </div>
@@ -796,7 +1017,7 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Tasks */}
+                    {/* Tasks Details */}
                     <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                       {/* Fumigar / Pulverizar */}
                       {(plannerFilter === 'todos' || plannerFilter === 'fumigar' || plannerFilter === 'pulverizar') && (
@@ -804,7 +1025,7 @@ function App() {
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.25rem' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
                               <Wind size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                              {plannerFilter === 'pulverizar' ? 'Pulverizar' : 'Fumigar / Pulverizar'}
+                              {plannerFilter === 'pulverizar' ? 'Pulverización' : 'Fumigación / Pulverización'}
                             </span>
                             <span className={`status-badge badge-${dayInfo.overallStatus}`}>
                               {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
@@ -825,33 +1046,6 @@ function App() {
                               border: '1px solid rgba(239,68,68,0.15)'
                             }}>
                               {dayInfo.nonOperationalReason}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Siembra */}
-                      {(plannerFilter === 'todos' || plannerFilter === 'sembrar') && (
-                        <div style={{ paddingBottom: '0.4rem', borderBottom: plannerFilter === 'todos' ? '1px solid rgba(148,163,184,0.08)' : 'none' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
-                              <Sprout size={12} style={{ color: 'var(--accent-secondary)', flexShrink: 0 }} />
-                              Siembra
-                            </span>
-                            <span className={`status-badge badge-${dayInfo.sowEval.status}`}>
-                              {dayInfo.sowEval.label}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.2rem' }}>
-                            {dayInfo.sowEval.reason}
-                          </div>
-                          {plannerFilter === 'sembrar' && (
-                            <div style={{ 
-                              fontSize: '0.6rem', fontWeight: 800, color: dayInfo.sowEval.status === 'green' ? 'var(--green)' : 'var(--yellow)', 
-                              background: dayInfo.sowEval.status === 'green' ? 'var(--green-bg)' : 'var(--yellow-bg)', 
-                              padding: '0.25rem 0.45rem', borderRadius: '6px', marginTop: '0.2rem'
-                            }}>
-                              Mejores horas: {dayInfo.sowEval.windows?.length > 0 ? dayInfo.sowEval.windows.join(' | ') : (dayInfo.sowEval.status !== 'red' ? 'Diurno (Temp > 10°C)' : 'Sin ventana apta')}
                             </div>
                           )}
                         </div>
@@ -929,7 +1123,7 @@ function App() {
                 <div className="card-top-header" style={{ marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <BarChart3 size={18} style={{ color: 'var(--blue)', flexShrink: 0 }} />
-                    <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.9rem' }}>Resumen</span>
+                    <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.9rem' }}>Resumen Semanal</span>
                   </div>
                   <span className="weather-badge">7 Días</span>
                 </div>
@@ -940,7 +1134,7 @@ function App() {
 
                 <div className="summary-stats-grid">
                   <div className="summary-stat-box">
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Horas Aptas</span>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Horas Aptas Aplicación</span>
                     <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--green)' }}>{totalWeeklyGreenHours} hs</span>
                   </div>
                   <div className="summary-stat-box">
@@ -965,14 +1159,15 @@ function App() {
                 </div>
 
                 <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.5 }}>
-                  Reglas para optimizar eficiencia de agroquímicos:
+                  Reglas de oro para optimizar fitosanitarios y cosecha:
                 </p>
 
                 <ul className="bpa-checklist">
                   <li>🟢 <strong>Viento óptimo:</strong> 3 a 15 km/h (evita deriva e inversión).</li>
                   <li>🟢 <strong>Delta T ideal:</strong> 2°C a 8°C (evita evaporación rápida).</li>
-                  <li>🟡 <strong>Ráfagas &gt; 15 km/h:</strong> Usar pastillas antideriva.</li>
+                  <li>🟡 <strong>Ráfagas &gt; 15 km/h:</strong> Obligatorio boquillas AI antideriva.</li>
                   <li>🔴 <strong>Temp &gt; 30°C / ΔT &gt; 10°C:</strong> Suspender aplicaciones.</li>
+                  <li>🌾 <strong>Cosecha de grano:</strong> Iniciar tras secado de rocío matinal con HR &lt; 65%.</li>
                 </ul>
               </div>
             </div>
@@ -984,13 +1179,20 @@ function App() {
         </div>
       )}
 
-      {/* ═══ WINDY RADAR ═══ */}
+      {/* ═══ RADAR METEOROLÓGICO INTERACTIVO WINDY ═══ */}
       <div className="glass-panel mb-6">
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-            <Radio size={18} style={{ color: 'var(--green)' }} /> Radar Meteorológico
-          </h2>
-          <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 700 }}>{selectedCity.name}</span>
+          <div>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+              <Radio size={18} style={{ color: 'var(--green)' }} /> Radar Meteorológico en Vivo (Viento & Lluvias)
+            </h2>
+            <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+              Monitoreo satelital ECMWF para la zona de {selectedCity.name}
+            </p>
+          </div>
+          <span style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 700, background: 'var(--bg-elevated)', padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
+            {selectedCity.name} ({selectedCity.lat.toFixed(2)}, {selectedCity.lon.toFixed(2)})
+          </span>
         </div>
         <div className="iframe-container">
           <iframe 
@@ -1009,34 +1211,40 @@ function App() {
             border: '1px solid rgba(34,197,94,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <Sprout size={18} style={{ color: 'var(--green)' }} />
+            <Wind size={18} style={{ color: 'var(--green)' }} />
           </div>
           <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '1.1rem', letterSpacing: '-0.02em' }}>CheClima</span>
         </div>
 
         <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, maxWidth: '540px', lineHeight: 1.6 }}>
-          Desarrollado por <strong style={{ color: 'var(--text-white)', fontWeight: 800 }}>Juan Francisco Natale</strong>.
+          Desarrollado para el productor agrícola por <strong style={{ color: 'var(--text-white)', fontWeight: 800 }}>Juan Francisco Natale</strong>.
         </p>
 
         <div style={{ 
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', 
           gap: '0.5rem', fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 600,
           background: 'var(--bg-elevated)', padding: '0.6rem 1rem', borderRadius: '12px',
-          border: '1px solid rgba(148,163,184,0.12)', maxWidth: '540px'
+          border: '1px solid rgba(148,163,184,0.12)', maxWidth: '580px'
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
-            🌐 <strong>Datos Clima:</strong> Open-Meteo API
+            🌐 <strong>Datos Meteorológicos:</strong> Open-Meteo API
           </span>
           <span>•</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
-            📖 <strong>Documentación Agronómica:</strong> Granos.ar
+            🛰️ <strong>Radar Satelital:</strong> Windy ECMWF
+          </span>
+          <span>•</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
+            📖 <strong>Protocolos BPA:</strong> Guías agronómicas públicas
           </span>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '0.2rem' }}>
-          <span>Pronósticos meteorológicos agronómicos</span>
+          <span>Fumigación de precisión</span>
           <span>·</span>
-          <span>Modelos BPA</span>
+          <span>Pulverización terrestre</span>
+          <span>·</span>
+          <span>Cosecha</span>
           <span>·</span>
           <span>© {new Date().getFullYear()} CheClima</span>
         </div>

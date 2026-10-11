@@ -1,5 +1,51 @@
 export const fetchWeather = async (lat, lon) => {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=7`;
+  const currentParams = [
+    'temperature_2m',
+    'relative_humidity_2m',
+    'apparent_temperature',
+    'precipitation',
+    'rain',
+    'weather_code',
+    'cloud_cover',
+    'wind_speed_10m',
+    'wind_direction_10m',
+    'wind_gusts_10m',
+    'surface_pressure',
+    'dew_point_2m',
+    'soil_temperature_0cm',
+    'soil_moisture_0_to_1cm'
+  ].join(',');
+
+  const hourlyParams = [
+    'temperature_2m',
+    'relative_humidity_2m',
+    'precipitation_probability',
+    'precipitation',
+    'wind_speed_10m',
+    'wind_direction_10m',
+    'wind_gusts_10m',
+    'weather_code',
+    'dew_point_2m',
+    'soil_temperature_0cm',
+    'soil_moisture_0_to_1cm',
+    'et0_fao_evapotranspiration'
+  ].join(',');
+
+  const dailyParams = [
+    'weather_code',
+    'temperature_2m_max',
+    'temperature_2m_min',
+    'precipitation_sum',
+    'precipitation_probability_max',
+    'wind_speed_10m_max',
+    'wind_gusts_10m_max',
+    'sunrise',
+    'sunset',
+    'et0_fao_evapotranspiration',
+    'uv_index_max'
+  ].join(',');
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${currentParams}&hourly=${hourlyParams}&daily=${dailyParams}&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=7`;
   
   try {
     const response = await fetch(url);
@@ -49,7 +95,11 @@ export const POPULAR_CITIES = [
   { name: "Bahía Blanca", admin1: "Buenos Aires", country: "Argentina", lat: -38.72, lon: -62.27 },
   { name: "Junín", admin1: "Buenos Aires", country: "Argentina", lat: -34.58, lon: -60.95 },
   { name: "Balcarce", admin1: "Buenos Aires", country: "Argentina", lat: -37.84, lon: -58.25 },
-  { name: "Trenque Lauquen", admin1: "Buenos Aires", country: "Argentina", lat: -35.97, lon: -62.73 }
+  { name: "Trenque Lauquen", admin1: "Buenos Aires", country: "Argentina", lat: -35.97, lon: -62.73 },
+  { name: "Río Cuarto", admin1: "Córdoba", country: "Argentina", lat: -31.13, lon: -64.35 },
+  { name: "Marcos Juárez", admin1: "Córdoba", country: "Argentina", lat: -32.70, lon: -62.11 },
+  { name: "Rafaela", admin1: "Santa Fe", country: "Argentina", lat: -31.25, lon: -61.49 },
+  { name: "Venado Tuerto", admin1: "Santa Fe", country: "Argentina", lat: -33.74, lon: -61.96 }
 ];
 
 export const getWindDirectionName = (degree) => {

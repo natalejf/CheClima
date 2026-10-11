@@ -37,29 +37,29 @@ export const calculateDeltaT = (temp, hum) => {
 
   let status = 'green';
   let zone = 'Óptimo (2°C - 8°C)';
-  let advice = 'Excelente balance entre evaporación y vida útil de la gota.';
-  let simpleExp = 'Condición perfecta: el producto llega a la planta sin evaporarse.';
+  let advice = 'Buena ventana: el caldo sale de la pastilla y llega a la hoja sin perder volumen.';
+  let simpleExp = 'Todo en orden: el producto llega a la planta sin evaporarse en el camino.';
 
   if (deltaT < 2) {
     status = 'yellow';
     zone = 'Bajo (< 2°C)';
-    advice = 'Poca evaporación pero ALTO RIESGO de Inversión Térmica y gotas suspendidas.';
-    simpleExp = 'Aire muy húmedo o frío: las gotas flotan sin caer y pueden viajar lejos por deriva.';
+    advice = 'Aire muy húmedo o frío. Las gotas flotan en suspensión y hay riesgo de que el viento las lleve lejos del lote.';
+    simpleExp = 'Demasiado húmedo: las gotas no caen, quedan en el aire y pueden derivar a campos vecinos.';
   } else if (deltaT >= 2 && deltaT <= 8) {
     status = 'green';
     zone = 'Óptimo (2°C - 8°C)';
-    advice = 'Condiciones excelentes para absorción y persistencia del caldo.';
-    simpleExp = 'Condición ideal de pulverización.';
+    advice = 'Ventana ideal. La gota no se evapora ni flota: llega entera a donde la mandás.';
+    simpleExp = 'Condición perfecta para pulverizar.';
   } else if (deltaT > 8 && deltaT <= 10) {
     status = 'yellow';
     zone = 'Precaución (8°C - 10°C)';
-    advice = 'Usar gotas medianas a gruesas y coadyuvante antievaporante (aceite mineral/vegetal).';
-    simpleExp = 'Aire seco: gotas chicas se evaporan en el aire. Usar gotas más grandes y aceite.';
+    advice = 'Calor seco: subí el tamaño de gota y agregá aceite al caldo para que el remedio no se evapore en el aire.';
+    simpleExp = 'Hace calor y el aire está seco. Las gotas chicas se evaporan antes de tocar la hoja — usá gotas más gruesas y aceite.';
   } else {
     status = 'red';
     zone = 'Crítico (> 10°C)';
-    advice = 'Evaporación extrema. La gota se evapora antes de depositarse en el blanco.';
-    simpleExp = 'Mucho calor y aire seco: el agroquímico se esfuma antes de tocar la maleza o cultivo.';
+    advice = 'No salgas al lote ahora. El calor evapora la gota antes de que toque la maleza.';
+    simpleExp = 'Demasiado calor y seco: estás tirando producto al aire. Esperá a que baje la temperatura.';
   }
 
   return { deltaT, status, zone, advice, simpleExp };
@@ -88,9 +88,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (rain > 0) {
       return { 
         status: 'red', 
-        message: `No apto: Lluvia activa (${rain} mm). Lavado total del producto aplicado.`,
-        action: 'Suspender aplicación y esperar a que el cultivo seque completamente.',
-        seasonNote: `Época: ${season.name}. Lluvias activas lavan cualquier fitosanitario.`
+        message: `Está lloviendo ahora mismo (${rain} mm). Todo lo que apliques se va a lavar.`,
+        action: 'Pará la máquina y esperá que el cultivo esté completamente seco antes de volver.'
       };
     }
 
@@ -98,9 +97,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (recentRainSum > 35) {
       return {
         status: 'red',
-        message: `No apto por suelo: Llovieron ${recentRainSum.toFixed(1)} mm en los últimos 3 días. Suelo anegado o muy blando.`,
-        action: 'No ingresar con maquinaria autopropulsada pesada. Esperar que oree el lote.',
-        seasonNote: `Época: ${season.name}. Riesgo crítico de encajar la pulverizadora.`
+        message: `Cayeron ${recentRainSum.toFixed(1)} mm en los últimos 3 días — el lote está muy blando para entrar con maquinaria.`,
+        action: 'Dejá que oree el suelo. No vale la pena arriesgar encajar la pulverizadora.'
       };
     }
 
@@ -108,9 +106,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (wind > SPRAY_THRESHOLDS.criticalWind || gusts > 28) {
       return { 
         status: 'red', 
-        message: `No apto: Viento excesivo (${wind} km/h, Ráfagas ${gusts} km/h). Severo riesgo de deriva off-target.`,
-        action: 'Interrumpir labores. El viento arrastra el producto fuera del lote.',
-        seasonNote: `Época: ${season.name}. Cuidar cultivos linderos y cortinas forestales.`
+        message: `Viento demasiado fuerte: ${wind} km/h con ráfagas de ${gusts} km/h. El producto se va a los campos vecinos.`,
+        action: 'Pará la aplicación. Con este viento estás fumigando para el vecino.'
       };
     }
 
@@ -118,9 +115,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (temp > SPRAY_THRESHOLDS.maxTemp) {
       return { 
         status: 'red', 
-        message: `No apto: Mucho calor (${temp}°C). Evaporación violenta y estrés en cultivo.`,
-        action: 'Diferir para la noche o primera hora de la mañana con temperaturas < 25°C.',
-        seasonNote: `Típico de ${season.name}: el calor evapora la gota antes de penetrar.`
+        message: `Hace demasiado calor: ${temp}°C. El caldo se evapora en el aire antes de tocar la hoja.`,
+        action: 'Dejalo para el anochecer o la primera hora de la mañana, cuando baje a menos de 25°C.'
       };
     }
 
@@ -128,9 +124,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (deltaT > 10) {
       return { 
         status: 'red', 
-        message: `No apto: Delta T crítico (${deltaT}°C). Pérdida de caldo por evaporación en vuelo.`,
-        action: 'Esperar a que baje la temperatura o suba la humedad relativa.',
-        seasonNote: 'El producto pierde eficacia y volumen en pleno vuelo.'
+        message: `Delta T muy alto (${deltaT}°C): el calor seco evapora el caldo antes de llegar a la planta.`,
+        action: 'Esperá que suba la humedad o baje la temperatura. Ahora estás tirando producto al pedo.'
       };
     }
 
@@ -138,9 +133,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (wind < SPRAY_THRESHOLDS.minWind) {
       return { 
         status: 'yellow', 
-        message: `Apto con precaución: Viento casi nulo (${wind} km/h). Riesgo de Inversión Térmica.`,
-        action: 'Verificar si el humo queda flotando en capas horizontales. No aplicar productos volátiles.',
-        seasonNote: `Al amanecer o atardecer en ${season.name}, el aire frío queda atrapado abajo.`
+        message: `Viento casi parado: ${wind} km/h. Ojo con la inversión térmica — las gotas flotan y no caen al lote.`,
+        action: 'Mirá el humo o el polvo de las ruedas: si queda flotando, no salgas. Esperá que levante el viento.'
       };
     }
 
@@ -148,9 +142,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (recentRainSum > 15) {
       return {
         status: 'yellow',
-        message: `Apto con precaución: ${recentRainSum.toFixed(1)} mm acumulados recientes. Piso húmedo en cabeceras y bajos.`,
-        action: 'Entrar con rodado ancho o menor carga de tanque para no compactar.',
-        seasonNote: `Monitorear sectores bajos del lote.`
+        message: `Cayeron ${recentRainSum.toFixed(1)} mm estos días — el piso en cabeceras y bajos puede estar húmedo.`,
+        action: 'Entrá con precaución: rodado ancho o menos carga de tanque para no compactar ni quedar enterrado.'
       };
     }
 
@@ -158,9 +151,8 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (wind > SPRAY_THRESHOLDS.idealMaxWind) {
       return { 
         status: 'yellow', 
-        message: `Apto con precaución: Viento al límite (${wind} km/h, Ráfagas ${gusts} km/h).`,
-        action: 'Obligatorio usar pastillas antideriva con aire inducido (AI) y bajar la altura del botalón.',
-        seasonNote: `Ajustar altura de barra a 50 cm del canopeo.`
+        message: `El viento está al límite: ${wind} km/h con ráfagas de ${gusts} km/h. Hay riesgo de que el producto se vaya.`,
+        action: 'Poné pastillas antideriva con aire inducido (AI) y bajá el botalón lo más que puedas.'
       };
     }
 
@@ -168,17 +160,15 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (hum < SPRAY_THRESHOLDS.minHum || deltaT > 8) {
       return { 
         status: 'yellow', 
-        message: `Apto con precaución: Aire seco (Humedad ${hum}%, ΔT ${deltaT}°C).`,
-        action: 'Agregar aceite coadyuvante antievaporante y calibrar tamaño de gota medio/grueso.',
-        seasonNote: `El aceite protege la gota durante el recorrido hacia el objetivo.`
+        message: `El aire está seco (HR ${hum}%, ΔT ${deltaT}°C) — las gotas chicas se evaporan antes de llegar a la hoja.`,
+        action: 'Agregá aceite antievaporante al caldo y usá gotas más gruesas para que lleguen enteras.'
       };
     }
 
     return { 
       status: 'green', 
-      message: `100% Apto: Condiciones climáticas y de suelo ideales para fumigación y pulverización de precisión.`,
-      action: 'Ventana óptima abierta. Trabajar con presión estándar y avanzar normalmente.',
-      seasonNote: `Contexto ${season.name}: óptima asimilación cuticular del activo.`
+      message: `Todo en orden para salir al campo. Viento, temperatura y humedad están dentro del rango ideal.`,
+      action: 'Arrancá tranquilo con presión normal. Ventana abierta para trabajar bien.'
     };
   }
 
@@ -186,54 +176,47 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     if (rain > 0) {
       return { 
         status: 'red', 
-        message: `No apto: Lluvia activa (${rain} mm). Trilla suspendida por humedad en planta y grano.`,
-        action: 'Aguardar secado natural del cultivo y del rastrojo.',
-        seasonNote: `Campaña en ${season.name}: el grano húmedo no ingresa al circuito comercial.`
+        message: `Está lloviendo (${rain} mm). El grano y la planta están mojados — la cosechadora tiene que quedarse parada.`,
+        action: 'Esperá el secado natural del cultivo. No hay apuro que valga la pena con este tiempo.'
       };
     }
 
-    // If more than 20mm fell in recent 3 days
     if (recentRainSum > 20) {
       return {
         status: 'red',
-        message: `No apto por piso y planta: ${recentRainSum.toFixed(1)} mm acumulados en los últimos 3 días. Rastrojo y suelo saturados.`,
-        action: 'Aguardar oreo de suelo y secado de panoja/vaina. Riesgo de enterrar cosechadora y tolvas.',
-        seasonNote: `Época de ${season.name}: controlar humedad con calador antes de meter la máquina.`
+        message: `Cayeron ${recentRainSum.toFixed(1)} mm estos días. El suelo está blando y el rastrojo mojado — riesgo de enterrar la máquina.`,
+        action: 'Dejá que seque bien el piso y la planta. Antes de entrar, chequeá la humedad del grano con el calador.'
       };
     }
 
     if (recentRainSum > 8) {
       return {
         status: 'yellow',
-        message: `Precaución: ${recentRainSum.toFixed(1)} mm caídos recientemente. El grano puede mantener humedad superficial.`,
-        action: 'Medir porcentaje de humedad con humidímetro en tolva antes de avanzar a lote completo.',
-        seasonNote: `Monitorear sectores con rastrojo denso que tardan más en secar.`
+        message: `Llovieron ${recentRainSum.toFixed(1)} mm hace poco. El grano puede tener humedad superficial todavía.`,
+        action: 'Medí la humedad en tolva con el humidímetro antes de llenar el camión. Empezá por los lotes más altos.'
       };
     }
 
     if (hum > 75) {
       return { 
         status: 'red', 
-        message: `No apto: Humedad ambiente alta (${hum}%). Riesgo de grano con sobrehumedad comercial.`,
-        action: 'Esperar que el sol baje la humedad ambiental para evitar descuentos y secadora en acopio.',
-        seasonNote: `En ${season.name}, la trilla suele abrirse recién después de las 11:30 hs.`
+        message: `Humedad del aire muy alta: ${hum}%. El grano va a llegar al acopio con más agua de lo permitido.`,
+        action: 'Esperá a que el sol trabaje un par de horas más. La trilla arranca bien recién pasadas las 11:30 hs.'
       };
     }
 
     if (hum > 65) {
       return { 
         status: 'yellow', 
-        message: `Apto con precaución: Humedad límite (${hum}%). Monitorear humedad de grano en tolva.`,
-        action: 'Cosechar lotes prioritarios con secadora disponible o variedades resistentes a desgrane.',
-        seasonNote: `Vigilar si el ambiente se seca a media tarde.`
+        message: `Humedad del aire en el límite: ${hum}%. Vale la pena medir el grano antes de comprometer mucho camión.`,
+        action: 'Empezá por los lotes más urgentes y chequeá seguido la humedad. A media tarde suele bajar.'
       };
     }
 
     return { 
       status: 'green', 
-      message: `100% Apto: Humedad ambiente óptima (${hum}%) para cosecha limpia, grano seco y bajo daño mecánico.`,
-      action: 'Aprovechar las horas de máxima radiación para avanzar el mayor número de hectáreas.',
-      seasonNote: `Condición excelente para entrega directa a puerto o silo sin costo de secado.`
+      message: `Buenas condiciones para trillar: ${hum}% de humedad y ${Math.round(temp)}°C. El grano va a salir seco y limpio.`,
+      action: 'Aprovechá las horas del mediodía para avanzar. Jornada ideal para entrega directa sin costo de secado.'
     };
   }
 
@@ -245,21 +228,21 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
  */
 export const evaluateDailyHarvest = (rainSum, maxHum, minHum, recentRain = 0) => {
   if (rainSum > 1) {
-    return { status: 'red', label: 'No Apto', reason: `Lluvias previstas (${rainSum} mm). Interrupción de trilla.` };
+    return { status: 'red', label: 'No Apto', reason: `Se esperan ${rainSum} mm de lluvia — la trilla se corta.` };
   }
   if (recentRain > 25) {
-    return { status: 'red', label: 'Piso Pesado', reason: `Lluvias previas (${recentRain.toFixed(1)} mm). Suelo húmedo para cosechadora.` };
+    return { status: 'red', label: 'Piso Pesado', reason: `Suelo blando por las lluvias recientes (${recentRain.toFixed(1)} mm). Riesgo de enterrar la cosechadora.` };
   }
   if (rainSum > 0) {
-    return { status: 'yellow', label: 'Incierto', reason: `Lloviznas débiles previstas (${rainSum} mm). Retrasa el arranque.` };
+    return { status: 'yellow', label: 'Incierto', reason: `Llovizna débil posible (${rainSum} mm). El arranque se puede retrasar.` };
   }
   if (minHum !== undefined && minHum > 70) {
-    return { status: 'red', label: 'No Apto', reason: `Humedad mínima del día muy alta (${minHum}%). Grano no seca.` };
+    return { status: 'red', label: 'No Apto', reason: `Día muy húmedo (mín ${minHum}%). El grano no baja la humedad.` };
   }
   if (maxHum > 80 && minHum > 60) {
-    return { status: 'yellow', label: 'Precaución', reason: `Día húmedo (Mín ${minHum}%). Ventana reducida de trilla.` };
+    return { status: 'yellow', label: 'Precaución', reason: `Día con bastante humedad (mín ${minHum}%). La ventana de trilla va a ser corta.` };
   }
-  return { status: 'green', label: 'Apto', reason: 'Excelente secado ambiental, apto para cosecha fluida.' };
+  return { status: 'green', label: 'Apto', reason: 'Buen día para trillar — el ambiente acompaña.' };
 };
 
 /**
@@ -367,27 +350,27 @@ export const evaluateDewRisk = (temp, dewPoint, hum) => {
   if (diff <= 1.5 || hum > 90) {
     return {
       status: 'red',
-      level: 'Rocío Activo / Follaje Mojado',
+      level: 'Rocío activo — follaje mojado',
       diff,
-      advice: 'Hojas mojadas: no pulverizar productos sistémicos (el caldo resbala y chorrea al suelo) ni cosechar (grano empapado).',
-      simpleExp: 'El pasto y las hojas están con gotas de rocío. Si aplicás ahora, el remedio chorrea y se pierde. Si trillás, el grano sale con agua.'
+      advice: 'Las hojas están mojadas. Si pulverizás ahora, el caldo chorrea al suelo y perdés todo el producto. Si trillás, el grano sale pasado de agua.',
+      simpleExp: 'Las hojas están con rocío. Ni pulverices ni trilles — esperá que seque bien.'
     };
   }
   if (diff <= 3.0 || hum > 80) {
     return {
       status: 'yellow',
-      level: 'Rocío Inminente',
+      level: 'Rocío por venir — andá cerrando',
       diff,
-      advice: 'Humedad próxima a condensar. La labor de cosecha debe ir cerrando por humedad ascendente en vainas/panojas.',
-      simpleExp: 'Se viene el rocío de la tardecita. La humedad está subiendo rápido; conviene ir redondeando la trilla.'
+      advice: 'La humedad está subiendo y se viene el rocío. Si estás trillando, andá redondeando. Si pensabas salir a aplicar, mejor mañana temprano.',
+      simpleExp: 'Se viene el rocío de la tardecita. Andá terminando lo que tenés en el lote.'
     };
   }
   return {
     status: 'green',
-    level: 'Follaje Seco',
+    level: 'Follaje seco',
     diff,
-    advice: 'Amplio margen sobre punto de rocío. Excelente para trilla limpia y máxima adherencia del pulverizado.',
-    simpleExp: 'Hojas y espigas secas al 100%. Lo que tires se pega a la hoja, y la cosechadora trilla sin atorarse.'
+    advice: 'Hojas y espigas completamente secas. Ideal tanto para que el producto se pegue bien como para que la cosechadora trille limpia.',
+    simpleExp: '100% seco. Todo lo que apliques se queda en la planta, y la trilladora trabaja sin atorarse.'
   };
 };
 
@@ -402,48 +385,48 @@ export const evaluateHarvestConditions = (rain, hum, temp, dewPoint, recentRain 
   if (r > 0) {
     return {
       status: 'red',
-      verdict: 'Cosecha Imposible (Lluvia activa)',
-      advice: 'Lluvia directa sobre el cultivo. Parada total de cosechadoras y tolvas.',
-      simpleExp: 'Lluvia cayendo: imposible trillar.'
+      verdict: 'Lluvia activa — pará todo',
+      advice: 'Está cayendo lluvia. Imposible trillar.',
+      simpleExp: 'Lluvia cayendo: guardá la cosechadora hasta que escampe y seque la planta.'
     };
   }
   if (recentRain > 25) {
     return {
       status: 'red',
-      verdict: 'Suelo Saturado por Lluvias Previas',
-      advice: `Llovieron ${recentRain.toFixed(1)} mm en los últimos 3 días. Suelo demasiado blando para peso de tolvas y cosechadora.`,
-      simpleExp: `El suelo está blando por los ${recentRain.toFixed(1)} mm caídos días atrás. Riesgo de enterrar la maquinaria.`
+      verdict: 'Suelo blando — no entres',
+      advice: `Llovieron ${recentRain.toFixed(1)} mm estos días. El suelo está demasiado blando para la cosechadora y las tolvas.`,
+      simpleExp: `Con ${recentRain.toFixed(1)} mm caídos, el suelo está flojo. Vas a dejar huellas feas o quedar enterrado.`
     };
   }
   if (h > 75) {
     return {
       status: 'red',
-      verdict: 'Sobrehumedad en Grano',
-      advice: `Humedad de aire muy alta (${h}%). Grano por encima del estándar comercial de recibo (13.5% soja / 14.5% maíz).`,
-      simpleExp: `Mucho vapor en el aire (${h}%): el grano absorbe humedad y en el acopio te van a cobrar secada o rechazar el camión.`
+      verdict: 'Grano fuera de norma — esperá',
+      advice: `El aire tiene ${h}% de humedad. El grano va a llegar al acopio pasado y te van a cobrar secada o rechazar el camión.`,
+      simpleExp: `Con ${h}% de humedad en el aire, el grano absorbe agua. No vale la pena arriesgar descuentos en el acopio.`
     };
   }
   if (h > 65) {
     return {
       status: 'yellow',
-      verdict: 'Ventana Límite / Humedad Media',
-      advice: `Humedad ambiente de ${h}%. Requiere control constante con humidímetro portátil en tolva.`,
-      simpleExp: 'Humedad al borde: medí una muestra de la tolva con el tester antes de llenar el camión.'
+      verdict: 'Al límite — medí antes de cargar',
+      advice: `Humedad del aire en ${h}%. Medí la humedad del grano en tolva con el tester antes de completar el camión.`,
+      simpleExp: 'Está al borde. Tomá una muestra de la tolva con el humidímetro antes de comprometer carga.'
     };
   }
   if (t < 14) {
     return {
       status: 'yellow',
-      verdict: 'Temperatura Fresca',
-      advice: `Baja evaporación (${t}°C). El secado del rocío matinal puede retrasarse.`,
-      simpleExp: 'Día fresco: tarda más en secarse el rocío de la mañana.'
+      verdict: 'Día fresco — arrancá más tarde',
+      advice: `Con ${t}°C, el rocío de la mañana tarda más en secarse. Mejor esperá un poco antes de arrancar.`,
+      simpleExp: 'Fresco: el rocío de la madrugada tarda en irse. Arrancá cuando el sol ya esté alto.'
     };
   }
   return {
     status: 'green',
-    verdict: 'Óptimo para Cosecha Comercial',
-    advice: `Humedad de aire ${h}% y ${t}°C. Grano seco con mínima merma por rotura y entrega directa sin secado.`,
-    simpleExp: 'Condición ideal: el grano está en humedad justa para entrega directa sin que te cobren secado.'
+    verdict: 'Ideal para trillar',
+    advice: `${h}% de humedad y ${t}°C. El grano sale seco y con mínima rotura. Condición perfecta para entrega directa.`,
+    simpleExp: 'Condición ideal: el grano está en su punto justo para ir directo al camión sin pagar secado.'
   };
 };
 
@@ -456,26 +439,26 @@ export const evaluateRainfastness = (hourlyRainNext6h) => {
     return {
       status: 'red',
       hoursToRain: '< 6 horas',
-      risk: 'Peligro Crítico de Lavado',
-      advice: `Se prevén ${rainNext6h.toFixed(1)} mm en las próximas 6h. No aplicar: el agua lavará el 80-100% del activo.`,
-      simpleExp: 'Va a llover pronto: la lluvia va a lavar todo el veneno o abono foliar que tires. No tires plata.'
+      risk: 'Va a llover — no salgas',
+      advice: `Se esperan ${rainNext6h.toFixed(1)} mm en las próximas 6 horas. La lluvia lava el 80–100% del activo que aplicaste.`,
+      simpleExp: 'Va a llover pronto. Si salís ahora, tirás el producto y el dinero a la cañada.'
     };
   }
   if (rainNext6h > 0.5) {
     return {
       status: 'yellow',
       hoursToRain: '< 6 horas',
-      risk: 'Riesgo Moderado de Lavado',
-      advice: `Lluvias débiles pronosticadas (${rainNext6h.toFixed(1)} mm). Utilizar formulaciones con resina pegante/adherente de rápido secado.`,
-      simpleExp: 'Hay chance de llovizna: usá un buen adherente siliconado para que la hoja lo chupe rápido.'
+      risk: 'Llovizna posible — tomá recaudos',
+      advice: `Hay ${rainNext6h.toFixed(1)} mm previstos. Si salís igual, usá un adherente siliconado para que la hoja absorba rápido antes de que llegue la humedad.`,
+      simpleExp: 'Puede caer una llovizna. Si no podés esperar, agregá adherente al caldo para que el producto se fije rápido.'
     };
   }
   return {
     status: 'green',
     hoursToRain: '> 6 horas',
-    risk: 'Sin Riesgo de Lavado',
-    advice: 'Al menos 6 horas libres de precipitaciones. Tiempo óptimo para absorción y fijación cuticular.',
-    simpleExp: 'No llueve por las próximas 6 horas: tiempo de sobra para que la planta absorba el producto.'
+    risk: 'Cielo despejado — tranquilo',
+    advice: 'Más de 6 horas sin lluvia prevista. El producto tiene tiempo de sobra para absorberse y fijarse en la cutícula.',
+    simpleExp: 'Sin lluvia por al menos 6 horas. Aplicá tranquilo — el producto se va a absorber bien.'
   };
 };
 
@@ -733,23 +716,23 @@ export const evaluateThermalInversion = (windSpeed) => {
   if (windSpeed < 3) {
     return {
       status: 'red',
-      title: 'Alto Riesgo de Inversión Térmica',
-      advice: 'Calma absoluta (viento < 3 km/h). Las gotas quedan flotando en suspensión y se desplazan kilómetros causando daño deriva.',
-      simpleExp: 'El viento está quieto (calma chicha). Las gotas no caen al lote, flotan como niebla y el viento suave se las lleva a cualquier lado.'
+      title: 'Calma chicha — no apliques',
+      advice: 'Sin viento, las gotas no caen: quedan flotando como niebla y el primer soplito las lleva a kilómetros del lote.',
+      simpleExp: 'Calma total. Las gotas flotan, no caen. Podés derivar al vecino sin querer.'
     };
   } else if (windSpeed >= 3 && windSpeed <= 6) {
     return {
       status: 'yellow',
-      title: 'Riesgo Moderado de Inversión',
-      advice: 'Atención al amanecer o caída del sol. Monitorear dirección del humo o polvo de las ruedas.',
-      simpleExp: 'Poco viento. Si es de mañana temprano o al anochecer, mirá el polvo de las ruedas: si queda flotando, suspendé la aplicación.'
+      title: 'Viento suave — mirá bien antes',
+      advice: 'Poco viento. Si es de mañanita o al atardecer, fijate en el polvo de las ruedas o el humo: si se queda flotando horizontal, no es el momento.',
+      simpleExp: 'Poco viento. Mirá el polvo o el humo — si flota sin disiparse, hay inversión y es mejor esperar.'
     };
   } else {
     return {
       status: 'green',
-      title: 'Bajo Riesgo de Inversión',
-      advice: 'Viento con mezcla vertical continua de aire. Sin inversión térmica peligrosa.',
-      simpleExp: 'Buen movimiento de aire: el aire mezcla bien arriba y abajo. No hay inversión.'
+      title: 'Buen movimiento de aire',
+      advice: 'El viento mezcla bien el aire. Las gotas caen donde las mandás y no hay inversión que te juegue una mala pasada.',
+      simpleExp: 'Aire en movimiento. No hay inversión — las gotas caen al lote.'
     };
   }
 };
@@ -765,33 +748,32 @@ export const evaluateSoilTrafficability = (precip, hum, soilMoisture, recentRain
   if (recentRainSum > 35 || precip > 15 || (soilMoisture !== undefined && soilMoisture > 0.42)) {
     return {
       status: 'red',
-      title: 'Piso Saturado / Barro Pesado',
+      title: 'Barro pesado — no entres',
       moistureVal: soilMoisture ? `${Math.round(soilMoisture * 100)}% vol` : `${recentRainSum.toFixed(1)} mm caídos`,
       recentRain: `${recentRainSum.toFixed(1)} mm recientes`,
-      advice: 'Suelo saturado de agua. Alto riesgo de encajar la pulverizadora autopropulsada, tractores y cosechadoras.',
-      simpleExp: 'Hay barro o suelo blando por el agua acumulada. No metas máquinas pesadas porque te vas a enterrar o dejar huellas profundas.'
+      advice: 'El suelo está saturado. Si entrás con la autopropulsada o el tractor, te vas a enterrar y dejás el lote con huellas que duelen.',
+      simpleExp: 'Barro de verdad. No metas maquinaria pesada — el riesgo de encajar no vale la pena.'
     };
   }
 
-  // Moderate rain or damp soil
   if (recentRainSum > 12 || precip > 2 || (soilMoisture !== undefined && soilMoisture > 0.33)) {
     return {
       status: 'yellow',
-      title: 'Piso Húmedo / Precaución en Bajos',
+      title: 'Piso húmedo — andá con cuidado',
       moistureVal: soilMoisture ? `${Math.round(soilMoisture * 100)}% vol` : `${recentRainSum.toFixed(1)} mm caídos`,
       recentRain: `${recentRainSum.toFixed(1)} mm recientes`,
-      advice: 'Ingresar con neumáticos de flotación o baja presión. Precaución en cabeceras y bajos del lote.',
-      simpleExp: 'El suelo tiene humedad de las últimas lluvias. Se puede entrar pero con cuidado en las zonas bajas del potrero.'
+      advice: 'Se puede entrar, pero ojo con las cabeceras y los bajos. Usá neumáticos de baja presión o flotación para no compactar.',
+      simpleExp: 'El suelo todavía tiene humedad. Entrá despacio y evitá los sectores bajos del potrero.'
     };
   }
 
   return {
     status: 'green',
-    title: 'Piso Firme / Óptima Transitabilidad',
+    title: 'Piso firme — tranquilo para entrar',
     moistureVal: soilMoisture ? `${Math.round(soilMoisture * 100)}% vol` : 'Seco',
     recentRain: `${recentRainSum.toFixed(1)} mm recientes`,
-    advice: 'Suelo con excelente sustentación. Tránsito sin deformación de huella ni compactación.',
-    simpleExp: 'El piso está firme y oreado. Las máquinas ruedan perfecto sin compactar ni patinar.'
+    advice: 'El suelo está bien seco y firme. Las máquinas entran sin problema y sin dejar huellas.',
+    simpleExp: 'Piso de primera. Rodás sin patinar, sin hundirte y sin compactar el suelo.'
   };
 };
 
@@ -805,23 +787,23 @@ export const evaluateFrostRisk = (temp, minTemp) => {
   if (lowest <= 0) {
     return {
       status: 'red',
-      title: 'Helada Meteorológica Severa',
-      advice: `Temperaturas bajo cero (${lowest}°C). Alto riesgo en hojas y espigas tiernas.`,
-      simpleExp: `Bajo cero (${lowest}°C): peligro de helada fuerte que quema brotes y hojas verdes.`
+      title: 'Helada fuerte — cuidado con los lotes',
+      advice: `Temperatura bajo cero (${lowest}°C). Las hojas verdes, espigas y brotes tiernos pueden quemarse.`,
+      simpleExp: `Bajo cero (${lowest}°C). Una helada así quema lo que encuentre verde — revisá el lote a la mañana.`
     };
   } else if (lowest <= 3) {
     return {
       status: 'yellow',
-      title: 'Riesgo de Helada Agronómica',
-      advice: `Temperatura cerca del suelo (${lowest}°C). Posible escarcha en bajos de campo.`,
-      simpleExp: `Cerca de 0°C a nivel del pasto (${lowest}°C): puede escarchar en las cañadas y bajos.`
+      title: 'Helada agronómica posible',
+      advice: `Con ${lowest}°C a nivel del suelo puede escarchar en los bajos y cañadas. Ojo si tenés cultivos en estado sensible.`,
+      simpleExp: `Frío cerca de cero (${lowest}°C): puede escarchar en los sectores bajos del campo esta noche.`
     };
   } else {
     return {
       status: 'green',
-      title: 'Sin Riesgo de Heladas',
-      advice: 'Temperaturas por encima del umbral de daño por frío.',
-      simpleExp: 'Temperatura templada: sin riesgo de escarcha ni frío extremo.'
+      title: 'Sin heladas',
+      advice: 'Temperatura bien por encima del peligro de frío. No hay riesgo de daño por bajas temperaturas.',
+      simpleExp: 'Sin riesgo. Temperatura tranquila, lejos del límite de escarcha.'
     };
   }
 };

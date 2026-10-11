@@ -699,7 +699,7 @@ function App() {
                   <Sparkles size={18} style={{ color: 'var(--green)' }} /> Centro de Consejos Prácticos y Decisiones de Campo
                 </h2>
                 <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  Pautas directas y claras en lenguaje de campo, basadas en clima actual, lluvias de los últimos 3 días y época del año ({currentSeason.name}).
+                  Lo que necesitás saber ahora para salir al campo o quedarte quieto: pastillas, rocío, lavado, cosecha.
                 </p>
               </div>
               <span className="quick-param-badge">
@@ -881,11 +881,11 @@ function App() {
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                <Gauge size={18} style={{ color: 'var(--green)' }} /> Monitores de Campo (Suelo, Temperatura y Aire)
-              </h2>
-              <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }} className="sm:inline">
-                Delta T · Inversión Térmica · Piso en Lote · Heladas
-              </span>
+                  <Gauge size={18} style={{ color: 'var(--green)' }} /> Estado del ambiente y el suelo
+                </h2>
+                <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }} className="sm:inline">
+                  Delta T · Inversión · Piso · Heladas
+                </span>
             </div>
 
             <div className="insights-grid">
@@ -978,7 +978,7 @@ function App() {
                     <Calendar size={18} style={{ color: 'var(--green)' }} /> Planificador Operativo Semanal
                   </h2>
                   <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    Filtrá por labor para consultar rápidamente las ventanas óptimas en los próximos 7 días
+                    Filtrá por labor y fijáte qué días y horarios te convienen en los próximos 7 días.
                   </p>
                 </div>
 
@@ -1239,7 +1239,7 @@ function App() {
                 </div>
 
                 <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.5 }}>
-                  Reglas de oro para optimizar fitosanitarios y cosecha:
+                  Las reglas de oro que ningún aplicador debería saltarse:
                 </p>
 
                 <ul className="bpa-checklist">
@@ -1261,7 +1261,7 @@ function App() {
                   <Calculator size={18} style={{ color: 'var(--green)' }} /> Calculador Rápido de Caldo y Cobertura (Tanqueada)
                 </h2>
                 <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                  Calculá cuántas hectáreas cubre tu pulverizadora y los litros de agroquímico necesarios por tanque
+                  Ponele los números de tu máquina y ves al toque cuántas hectáreas por tanque y cuánto producto llevarte.
                 </p>
               </div>
               <span className="quick-param-badge">Herramienta Operativa</span>

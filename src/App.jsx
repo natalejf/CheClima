@@ -357,7 +357,7 @@ function App() {
         </div>
       ) : current ? (
         <>
-          {/* ═══ HERO PANORAMA DE DECISIÓN RÁPIDA ═══ */}
+          {/* ═══ 1. HERO: PANORAMA INMEDIATO DE DECISIÓN Y SEMÁFORO (LO MÁS IMPORTANTE) ═══ */}
           <div className="glass-panel hero-panorama-card mb-6">
             {/* Top Row: Title + Task Selector */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
@@ -368,7 +368,7 @@ function App() {
                     <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Decisión Operativa</span>
                     <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
                   </div>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
                     {selectedCity.name}: ¿Conviene entrar al lote hoy?
                   </h2>
                 </div>
@@ -521,7 +521,193 @@ function App() {
             )}
           </div>
 
-          {/* ═══ CENTRO DE CONSEJOS Y TOMA DE DECISIONES AGRONÓMICAS ═══ */}
+          {/* ═══ 2. CLIMA ACTUAL & SEMÁFORO DE LABORES (COMPACTO Y SIN ESPACIOS MUERTOS) ═══ */}
+          <div className="main-grid mb-6">
+            {/* Clima Actual */}
+            <div className="glass-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <Thermometer size={18} style={{ color: 'var(--green)' }} /> Clima Actual en Lote
+                </h2>
+                <span className="weather-badge">
+                  {getWeatherDescription(current.weather_code)}
+                </span>
+              </div>
+
+              <div className="weather-main-grid">
+                {/* Caja de Temperatura Completa (sin huecos vacíos) */}
+                <div className="temp-display-card">
+                  <div>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Temperatura</span>
+                    <div className="temp-display">
+                      <span className="temp-huge">{Math.round(current.temperature_2m)}°</span>
+                      <span className="temp-unit">C</span>
+                    </div>
+                  </div>
+
+                  <div className="temp-details-row">
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Sensación:</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{Math.round(current.apparent_temperature ?? current.temperature_2m)}°C</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Punto Rocío:</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{current.dew_point_2m ?? '--'}°C</strong>
+                    </div>
+                    {todayAnalysis && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Máx / Mín hoy:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{Math.round(todayAnalysis.maxTemp)}° / {Math.round(todayAnalysis.minTemp)}°</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="weather-metrics">
+                  {/* Wind */}
+                  <div className="metric-box highlighted">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Wind size={16} style={{ color: 'var(--green)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Viento</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                      {current.wind_speed_10m} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>km/h</span>
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                      Ráfagas: <strong style={{ color: 'var(--text-primary)' }}>{current.wind_gusts_10m} km/h</strong>
+                    </div>
+                    <div className="wind-direction-pill" style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Navigation 
+                        size={12} 
+                        style={{ transform: `rotate(${current.wind_direction_10m}deg)`, color: 'var(--green)', flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: '0.65rem' }}>{getWindDirectionName(current.wind_direction_10m)}</span>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>({current.wind_direction_10m}°)</span>
+                    </div>
+                  </div>
+
+                  {/* Humidity */}
+                  <div className="metric-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Droplets size={16} style={{ color: 'var(--blue)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Humedad</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.relative_humidity_2m}%</div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Delta T: <strong>{deltaT?.deltaT}°C</strong></span>
+                  </div>
+
+                  {/* Precipitation */}
+                  <div className="metric-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <CloudRain size={16} style={{ color: 'var(--blue)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Lluvia</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.precipitation} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>mm</span></div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      {recentRainSum > 0 ? `+${recentRainSum.toFixed(1)} mm (3d)` : 'Sin lluvias previas'}
+                    </span>
+                  </div>
+
+                  {/* UV Index */}
+                  <div className="metric-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Sun size={16} style={{ color: 'var(--yellow)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Índice UV</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                      {daily?.uv_index_max?.[3] ?? '--'}
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      {(() => { const uv = daily?.uv_index_max?.[3]; if (!uv) return 'Sin datos'; if (uv <= 2) return 'Bajo'; if (uv <= 5) return 'Moderado'; if (uv <= 7) return 'Alto'; if (uv <= 10) return 'Muy alto'; return 'Extremo'; })()}
+                    </span>
+                  </div>
+
+                  {/* Suelo */}
+                  <div className="metric-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Layers size={16} style={{ color: 'var(--yellow)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Temp. Suelo</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                      {current.soil_temperature_0cm !== undefined ? `${Math.round(current.soil_temperature_0cm)}°` : '--'}
+                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>C</span>
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      {current.soil_moisture_0_to_1cm !== undefined ? `Humedad: ${(current.soil_moisture_0_to_1cm * 100).toFixed(0)}%` : 'Superficie'}
+                    </span>
+                  </div>
+
+                  {/* Presión */}
+                  <div className="metric-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Gauge size={16} style={{ color: 'var(--text-secondary)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Presión</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                      {current.surface_pressure ? Math.round(current.surface_pressure) : '--'}
+                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}> hPa</span>
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      {current.surface_pressure ? (current.surface_pressure >= 1013 ? 'Alta — buen tiempo' : current.surface_pressure >= 995 ? 'Normal' : 'Baja — inestable') : ''}
+                    </span>
+                  </div>
+
+                  {/* Evapotranspiración */}
+                  <div className="metric-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                      <Eye size={16} style={{ color: 'var(--green)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>ETo Hoy</span>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                      {daily?.et0_fao_evapotranspiration?.[3] !== undefined ? daily.et0_fao_evapotranspiration[3].toFixed(1) : '--'}
+                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}> mm</span>
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Evapotranspiración FAO-56</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Task Semaphore */}
+            <div className="glass-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores Agrícolas
+                </h2>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600 }}>Clima + Suelo + Época</span>
+              </div>
+
+              <div className="tasks-grid">
+                {[
+                  { task: 'fumigar', label: 'Fumigación de precisión', icon: Wind, rules: currentFumigarEval },
+                  { task: 'pulverizar', label: 'Pulverización terrestre', icon: Crosshair, rules: currentPulverizarEval },
+                  { task: 'cosechar', label: 'Cosecha y trilla de granos', icon: Calendar, rules: currentHarvestEval }
+                ].map(({ task, label, icon: TaskIcon, rules }) => {
+                  return (
+                    <div key={task} className={`state-card state-border-${rules.status}`}>
+                      <div className="state-header">
+                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+                          <TaskIcon size={15} style={{ color: rules.status === 'green' ? 'var(--green)' : rules.status === 'yellow' ? 'var(--yellow)' : 'var(--red)' }} />
+                          {label}
+                        </span>
+                        <span className={`status-badge badge-${rules.status}`}>
+                          {rules.status === 'green' ? 'APTO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>{rules.message}</p>
+                      {rules.action && (
+                        <div style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <ArrowRight size={11} style={{ color: 'var(--green)' }} /> {rules.action}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ 3. CENTRO DE CONSEJOS Y TOMA DE DECISIONES AGRONÓMICAS ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
@@ -684,186 +870,30 @@ function App() {
             </div>
           </div>
 
-          {/* ═══ CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO ═══ */}
+          {/* ═══ 4. RADAR METEOROLÓGICO INTERACTIVO WINDY ═══ */}
           <div className="glass-panel mb-6">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
               <div>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <Calculator size={18} style={{ color: 'var(--green)' }} /> Calculador Rápido de Caldo y Cobertura (Tanqueada)
+                  <Radio size={18} style={{ color: 'var(--green)' }} /> Radar Meteorológico en Vivo (Viento &amp; Lluvias)
                 </h2>
                 <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                  Calculá cuántas hectáreas cubre tu pulverizadora y los litros de agroquímico necesarios por tanque
+                  Monitoreo satelital ECMWF para la zona de {selectedCity.name}
                 </p>
               </div>
-              <span className="quick-param-badge">Herramienta Operativa</span>
+              <span style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 700, background: 'var(--bg-elevated)', padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
+                {selectedCity.name} ({selectedCity.lat.toFixed(2)}, {selectedCity.lon.toFixed(2)})
+              </span>
             </div>
-
-            <div className="calc-grid">
-              <div className="calc-input-group">
-                <label>Capacidad del Tanque (Litros)</label>
-                <input 
-                  type="number" 
-                  value={calcTankVolume} 
-                  onChange={(e) => setCalcTankVolume(Number(e.target.value) || 0)}
-                  placeholder="3000"
-                />
-              </div>
-
-              <div className="calc-input-group">
-                <label>Volumen de Aplicación (L/ha)</label>
-                <input 
-                  type="number" 
-                  value={calcTargetRate} 
-                  onChange={(e) => setCalcTargetRate(Number(e.target.value) || 0)}
-                  placeholder="60"
-                />
-              </div>
-
-              <div className="calc-input-group">
-                <label>Dosis de Producto (L o Kg / ha)</label>
-                <input 
-                  type="number" 
-                  step="0.1"
-                  value={calcDosePerHa} 
-                  onChange={(e) => setCalcDosePerHa(Number(e.target.value) || 0)}
-                  placeholder="1.5"
-                />
-              </div>
-            </div>
-
-            <div className="calc-result-box" style={{ marginTop: '0.85rem' }}>
-              <div>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Hectáreas por Tanqueada:</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--green)' }}>
-                  {calcHectaresPerTank} <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>ha</span>
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Producto Comercial por Tanque:</span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--blue)' }}>
-                  {calcTotalProductPerTank} <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>L / Kg</span>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', maxWidth: '300px' }}>
-                💡 En días de Delta T elevado ({deltaT?.deltaT}°C), agregar <strong>{(calcHectaresPerTank * 0.5).toFixed(1)} L</strong> de antievaporante al caldo.
-              </div>
+            <div className="iframe-container">
+              <iframe 
+                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=7&overlay=wind&product=ecmwf&level=surface&lat=${selectedCity.lat}&lon=${selectedCity.lon}&detailLat=${selectedCity.lat}&detailLon=${selectedCity.lon}`}
+                title="Windy Map"
+              ></iframe>
             </div>
           </div>
 
-          {/* ═══ MAIN GRID: CLIMA ACTUAL + SEMÁFORO DE LABORES ═══ */}
-          <div className="main-grid mb-6">
-            {/* Clima Actual */}
-            <div className="glass-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <Thermometer size={18} style={{ color: 'var(--green)' }} /> Clima Actual
-                </h2>
-                <span className="weather-badge">
-                  {getWeatherDescription(current.weather_code)}
-                </span>
-              </div>
-
-              <div className="weather-main-grid">
-                <div className="temp-display">
-                  <span className="temp-huge">{Math.round(current.temperature_2m)}°</span>
-                  <span className="temp-unit">C</span>
-                </div>
-
-                <div className="weather-metrics">
-                  {/* Wind */}
-                  <div className="metric-box highlighted">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Wind size={16} style={{ color: 'var(--green)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Viento</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                      {current.wind_speed_10m} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>km/h</span>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                      Ráfagas: <strong style={{ color: 'var(--text-primary)' }}>{current.wind_gusts_10m} km/h</strong>
-                    </div>
-                    <div className="wind-direction-pill" style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Navigation 
-                        size={12} 
-                        style={{ transform: `rotate(${current.wind_direction_10m}deg)`, color: 'var(--green)', flexShrink: 0 }}
-                      />
-                      <span style={{ fontSize: '0.65rem' }}>{getWindDirectionName(current.wind_direction_10m)}</span>
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>({current.wind_direction_10m}°)</span>
-                    </div>
-                  </div>
-
-                  {/* Humidity */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Droplets size={16} style={{ color: 'var(--blue)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Humedad</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.relative_humidity_2m}%</div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Pto Rocío: {current.dew_point_2m}°C</span>
-                  </div>
-
-                  {/* Precipitation */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <CloudRain size={16} style={{ color: 'var(--blue)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Lluvia</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.precipitation} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>mm</span></div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      {recentRainSum > 0 ? `+${recentRainSum.toFixed(1)} mm (3d)` : 'Sin lluvias previas'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Task Semaphore */}
-            <div className="glass-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores Agrícolas
-                </h2>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600 }}>Evaluación integral (Clima + Suelo + Época)</span>
-              </div>
-
-              <div className="tasks-grid">
-                {[
-                  { task: 'fumigar', label: 'Fumigación de precisión', icon: Wind, rules: currentFumigarEval },
-                  { task: 'pulverizar', label: 'Pulverización terrestre', icon: Crosshair, rules: currentPulverizarEval },
-                  { task: 'cosechar', label: 'Cosecha y trilla de granos', icon: Calendar, rules: currentHarvestEval }
-                ].map(({ task, label, icon: TaskIcon, rules }) => {
-                  return (
-                    <div key={task} className={`state-card state-border-${rules.status}`}>
-                      <div className="state-header">
-                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
-                          <TaskIcon size={15} style={{ color: rules.status === 'green' ? 'var(--green)' : rules.status === 'yellow' ? 'var(--yellow)' : 'var(--red)' }} />
-                          {label}
-                        </span>
-                        <span className={`status-badge badge-${rules.status}`}>
-                          {rules.status === 'green' ? 'APTO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>{rules.message}</p>
-                      {rules.action && (
-                        <div style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <ArrowRight size={11} style={{ color: 'var(--green)' }} /> {rules.action}
-                        </div>
-                      )}
-                      {rules.seasonNote && (
-                        <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', marginTop: '0.2rem', fontStyle: 'italic' }}>
-                          {rules.seasonNote}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* ═══ MONITORES AGRONÓMICOS AVANZADOS ═══ */}
+          {/* ═══ 5. MONITORES AGRONÓMICOS AVANZADOS (SUELO, DELTA T, INVERSIÓN, HELADAS) ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
@@ -955,7 +985,7 @@ function App() {
             </div>
           </div>
 
-          {/* ═══ PLANIFICADOR SEMANAL (FUMIGAR / PULVERIZAR / COSECHAR) ═══ */}
+          {/* ═══ 6. PLANIFICADOR OPERATIVO SEMANAL (7 DÍAS) ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
@@ -1238,35 +1268,80 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* ═══ 7. CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO (HERRAMIENTA ESPECÍFICA) ═══ */}
+          <div className="glass-panel mb-6">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                  <Calculator size={18} style={{ color: 'var(--green)' }} /> Calculador Rápido de Caldo y Cobertura (Tanqueada)
+                </h2>
+                <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                  Calculá cuántas hectáreas cubre tu pulverizadora y los litros de agroquímico necesarios por tanque
+                </p>
+              </div>
+              <span className="quick-param-badge">Herramienta Operativa</span>
+            </div>
+
+            <div className="calc-grid">
+              <div className="calc-input-group">
+                <label>Capacidad del Tanque (Litros)</label>
+                <input 
+                  type="number" 
+                  value={calcTankVolume} 
+                  onChange={(e) => setCalcTankVolume(Number(e.target.value) || 0)}
+                  placeholder="3000"
+                />
+              </div>
+
+              <div className="calc-input-group">
+                <label>Volumen de Aplicación (L/ha)</label>
+                <input 
+                  type="number" 
+                  value={calcTargetRate} 
+                  onChange={(e) => setCalcTargetRate(Number(e.target.value) || 0)}
+                  placeholder="60"
+                />
+              </div>
+
+              <div className="calc-input-group">
+                <label>Dosis de Producto (L o Kg / ha)</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  value={calcDosePerHa} 
+                  onChange={(e) => setCalcDosePerHa(Number(e.target.value) || 0)}
+                  placeholder="1.5"
+                />
+              </div>
+            </div>
+
+            <div className="calc-result-box" style={{ marginTop: '0.85rem' }}>
+              <div>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Hectáreas por Tanqueada:</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--green)' }}>
+                  {calcHectaresPerTank} <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>ha</span>
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Producto Comercial por Tanque:</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--blue)' }}>
+                  {calcTotalProductPerTank} <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>L / Kg</span>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', maxWidth: '300px' }}>
+                💡 En días de Delta T elevado ({deltaT?.deltaT}°C), agregar <strong>{(calcHectaresPerTank * 0.5).toFixed(1)} L</strong> de antievaporante al caldo.
+              </div>
+            </div>
+          </div>
         </>
       ) : (
         <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem' }}>
           <p style={{ color: 'var(--text-secondary)' }}>No se pudieron cargar los datos meteorológicos.</p>
         </div>
       )}
-
-      {/* ═══ RADAR METEOROLÓGICO INTERACTIVO WINDY ═══ */}
-      <div className="glass-panel mb-6">
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-              <Radio size={18} style={{ color: 'var(--green)' }} /> Radar Meteorológico en Vivo (Viento & Lluvias)
-            </h2>
-            <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-              Monitoreo satelital ECMWF para la zona de {selectedCity.name}
-            </p>
-          </div>
-          <span style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 700, background: 'var(--bg-elevated)', padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
-            {selectedCity.name} ({selectedCity.lat.toFixed(2)}, {selectedCity.lon.toFixed(2)})
-          </span>
-        </div>
-        <div className="iframe-container">
-          <iframe 
-            src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=7&overlay=wind&product=ecmwf&level=surface&lat=${selectedCity.lat}&lon=${selectedCity.lon}&detailLat=${selectedCity.lat}&detailLon=${selectedCity.lon}`}
-            title="Windy Map"
-          ></iframe>
-        </div>
-      </div>
 
       {/* ═══ FOOTER ═══ */}
       <footer className="glass-panel app-footer" style={{ padding: '1.75rem 1.25rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>

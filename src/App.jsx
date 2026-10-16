@@ -191,148 +191,7 @@ function App() {
   const calcTotalProductPerTank = calcTargetRate > 0 ? ((calcTankVolume / calcTargetRate) * calcDosePerHa).toFixed(1) : 0;
 
   return (
-    <div className="app-container" style={{ minHeight: '100vh', padding: '1rem', maxWidth: '1280px', margin: '0 auto' }}>
-      
-      {/* ═══ HEADER ═══ */}
-      <header className="glass-panel app-header mb-6" style={{ padding: '1.5rem 1.25rem', textAlign: 'center', position: 'relative' }}>
-        {/* Dark/Light toggle */}
-        <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          style={{
-            position: 'absolute',
-            top: '1.25rem',
-            right: '1.25rem',
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '50%',
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            zIndex: 10
-          }}
-          title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-        >
-          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <div style={{ 
-            width: '40px', height: '40px', borderRadius: '10px', 
-            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15))', 
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <Wind size={22} style={{ color: 'var(--green)' }} />
-          </div>
-          <h1 className="brand-title" style={{ fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
-            CheClima
-          </h1>
-          <span style={{ 
-            fontSize: '0.55rem', fontWeight: 800, background: 'var(--green-bg)', 
-            color: 'var(--green)', padding: '0.15rem 0.55rem', borderRadius: '99px', 
-            border: '1px solid rgba(34, 197, 94, 0.3)', letterSpacing: '0.05em', textTransform: 'uppercase'
-          }}>
-            AGRO DECISIONES
-          </span>
-        </div>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.75rem', letterSpacing: '0.01em' }}>
-          Plataforma de Toma de Decisiones y Asesoramiento para <strong>Fumigación · Pulverización · Cosecha</strong>
-        </p>
-
-
-        {/* Search */}
-        <div className="search-wrapper" style={{ maxWidth: '540px', margin: '0 auto' }} ref={searchContainerRef}>
-          <div className="search-input-box" style={{ borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Buscar localidad agrícola (ej. Necochea, Balcarce, Pergamino, Rosario)..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-            />
-            {searchQuery && (
-              <button 
-                className="clear-btn" 
-                onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {showDropdown && (searchResults.length > 0 || isSearching) && (
-            <div className="search-dropdown">
-              {isSearching ? (
-                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Buscando localidades...</div>
-              ) : (
-                searchResults.map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className="search-item"
-                    onClick={() => {
-                      handleSelectCity(item);
-                      setSearchQuery(item.name);
-                    }}
-                  >
-                    <MapPin size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    <div>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.4rem' }}>
-                        {[item.admin1, item.country].filter(Boolean).join(', ')}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Popular Agricultural Cities Chips */}
-        <div style={{ maxWidth: '780px', margin: '0.85rem auto 0' }}>
-          <div className="city-chips-scroll">
-            {POPULAR_CITIES.map((c, i) => (
-              <button
-                key={i}
-                className={`city-chip-btn ${selectedCity.name === c.name ? 'active' : ''}`}
-                onClick={() => handleSelectCity(c)}
-              >
-                <MapPin size={11} />
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Location Pill */}
-        <div style={{ 
-          marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-          fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)'
-        }}>
-          <MapPin size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />
-          <span>{selectedCity.name}</span>
-          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
-          </span>
-          <span style={{ 
-            width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', 
-            boxShadow: '0 0 6px rgba(34,197,94,0.5)', display: 'inline-block'
-          }} />
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
-            EN VIVO · OPEN-METEO
-          </span>
-        </div>
-      </header>
-
+    <div className="app-container" style={{ minHeight: '100vh', margin: '0 auto' }}>
       {loading ? (
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
           <div className="loader" style={{ marginBottom: '1rem' }}></div>
@@ -341,357 +200,526 @@ function App() {
         </div>
       ) : current ? (
         <>
-          {/* ═══ 1. HERO: PANORAMA INMEDIATO DE DECISIÓN Y SEMÁFORO (LO MÁS IMPORTANTE) ═══ */}
-          <div className="glass-panel hero-panorama-card mb-6">
-            {/* Top Row: Title + Task Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                    <Activity size={14} style={{ color: 'var(--green)' }} />
-                    <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Decisión Operativa</span>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
-                  </div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
-                    {selectedCity.name}: ¿Conviene entrar al lote hoy?
-                  </h2>
-                </div>
+          {/* ══════════════════════════════════════════════════════════════
+              DESKTOP TOP SPLIT SECTION:
+              - Left Column: Header/Brand + Search + Quick Cities + Panorama Hero + Clima Actual
+              - Right Column: Windy Interactive Satellite Radar (En Grande)
+              (On mobile/tablet it naturally stacks in order!)
+              ══════════════════════════════════════════════════════════════ */}
+          <div className="desktop-top-split mb-6">
+            
+            {/* ═══ LEFT COLUMN: Búsqueda, Decisión Inmediata y Clima Actual ═══ */}
+            <div className="desktop-left-column">
+              {/* HEADER / BUSCADOR */}
+              <header className="glass-panel app-header" style={{ padding: '1.25rem 1.25rem', textAlign: 'center', position: 'relative' }}>
+                {/* Dark/Light toggle */}
+                <button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    background: 'var(--glass-bg)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '50%',
+                    width: '34px',
+                    height: '34px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    zIndex: 10
+                  }}
+                  title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+                >
+                  {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
+                </button>
 
-                {/* Labor Tabs for Panorama: Fumigar / Pulverizar / Cosechar */}
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ 
-                    fontSize: '0.62rem', 
-                    fontWeight: 700, 
-                    color: 'var(--text-secondary)', 
-                    background: 'var(--bg-elevated)', 
-                    padding: '0.25rem 0.55rem', 
-                    borderRadius: '6px', 
-                    border: '1px solid rgba(148,163,184,0.15)', 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '0.25rem',
-                    flexShrink: 0 
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <div style={{ 
+                    width: '36px', height: '36px', borderRadius: '10px', 
+                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15))', 
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
-                    <Filter size={11} style={{ color: 'var(--accent)' }} /> Labor activa:
+                    <Wind size={20} style={{ color: 'var(--green)' }} />
+                  </div>
+                  <h1 className="brand-title" style={{ fontSize: '1.75rem', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                    CheClima
+                  </h1>
+                  <span style={{ 
+                    fontSize: '0.52rem', fontWeight: 800, background: 'var(--green-bg)', 
+                    color: 'var(--green)', padding: '0.15rem 0.5rem', borderRadius: '99px', 
+                    border: '1px solid rgba(34, 197, 94, 0.3)', letterSpacing: '0.05em', textTransform: 'uppercase'
+                  }}>
+                    AGRO DECISIONES
                   </span>
-                  {[
-                    { id: 'fumigar', label: 'Fumigación', icon: Wind, eval: currentFumigarEval },
-                    { id: 'pulverizar', label: 'Pulverización', icon: Crosshair, eval: currentPulverizarEval },
-                    { id: 'cosechar', label: 'Cosecha', icon: Calendar, eval: currentHarvestEval }
-                  ].map((task) => {
-                    const TaskIcon = task.icon;
-                    const isActive = heroTask === task.id;
-                    const status = task.eval?.status || 'yellow';
-                    return (
-                      <button
-                        key={task.id}
-                        onClick={() => setHeroTask(task.id)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                          padding: '0.35rem 0.65rem',
-                          borderRadius: '8px',
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          border: isActive ? `1.5px solid var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` : '1px solid rgba(148,163,184,0.15)',
-                          background: isActive ? `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'}-bg)` : 'var(--bg-card-solid)',
-                          color: 'var(--text-white)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.65rem' }}>
+                  Plataforma de Toma de Decisiones para <strong>Fumigación · Pulverización · Cosecha</strong>
+                </p>
+
+                {/* Search */}
+                <div className="search-wrapper" style={{ maxWidth: '100%', margin: '0 auto' }} ref={searchContainerRef}>
+                  <div className="search-input-box" style={{ borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+                    <Search size={18} className="search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Buscar localidad agrícola (ej. Necochea, Balcarce, Pergamino, Rosario)..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                    />
+                    {searchQuery && (
+                      <button 
+                        className="clear-btn" 
+                        onClick={() => { setSearchQuery(''); setSearchResults([]); }}
                       >
-                        <TaskIcon size={12} style={{ color: `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` }} />
-                        {task.label}: {status === 'green' ? '🟢 APTO' : status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO'}
+                        <X size={16} />
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* 3 Panorama Cards for Selected Task */}
-            <div className="hero-three-cards-grid">
-              {/* Ventana Horaria */}
-              <div className="panorama-box green-highlight">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
-                  <Play size={13} style={{ color: 'var(--green)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Apta Hoy</span>
-                </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && (todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima')}
-                  {heroTask === 'cosechar' && (todayAnalysis?.harvestEval?.windows?.length > 0 ? todayAnalysis.harvestEval.windows.join(' | ') : (todayAnalysis?.harvestEval?.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana apta'))}
-                </div>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Franja horaria recomendada para {heroTask === 'cosechar' ? 'cosecha' : 'aplicaciones'}
-                </span>
-              </div>
-
-              {/* Diagnóstico */}
-              <div className="panorama-box amber-highlight">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
-                  <ShieldAlert size={13} style={{ color: 'var(--yellow)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--yellow)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnóstico de Campo</span>
-                </div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && currentFumigarEval?.message}
-                  {heroTask === 'cosechar' && currentHarvestEval?.message}
-                </div>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Viento: {current.wind_speed_10m} km/h • Temp: {current.temperature_2m}°C • Humedad: {current.relative_humidity_2m}%
-                </span>
-              </div>
-
-              {/* Sol y Luz Solar */}
-              <div className="panorama-box blue-highlight">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
-                  <Sun size={13} style={{ color: 'var(--blue)' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--blue)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Luz Solar y Rocío</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginTop: '0.15rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Sunrise size={14} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>{formatTimeHHMM(todayAnalysis?.sunrise)}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Sunset size={14} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>{formatTimeHHMM(todayAnalysis?.sunset)}</span>
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.35rem', fontWeight: 500 }}>
-                  Duración: <strong style={{ color: 'var(--text-primary)' }}>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong> • Rocío: {dewRisk?.level || 'Seco'}
-                </span>
-              </div>
-            </div>
-
-            {/* Best Day Banner for Selected Task */}
-            {weeklyAnalysis && (
-              <div className="best-day-banner-prominent" style={{ marginTop: '1rem' }}>
-                <div className="best-day-icon-circle">
-                  <Award size={28} style={{ color: 'var(--yellow)' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    <span style={{ 
-                      fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--yellow)',
-                      background: 'var(--yellow-bg)', padding: '0.15rem 0.55rem', borderRadius: '99px',
-                      border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
-                    }}>
-                      🏆 Mejor día de la semana para {heroTask === 'cosechar' ? 'Cosechar' : 'Fumigar / Pulverizar'}
-                    </span>
-                  </div>
-                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && bestDayFumigar && (
-                    <>
-                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
-                        {getDayName(bestDayFumigar.dateStr, bestDayFumigar.dayIndex)} ({formatDateShort(bestDayFumigar.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDayFumigar.greenCount} hs óptimas</span>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
-                        {bestDayFumigar.windows.length > 0 ? `Ventanas recomendadas: ${bestDayFumigar.windows.join(' y ')}.` : 'Condiciones con menor viento.'} Viento máx: {bestDayFumigar.maxWind} km/h • Ráfagas: {bestDayFumigar.maxGust} km/h
-                      </div>
-                    </>
-                  )}
-                  {heroTask === 'cosechar' && bestDayCosechar && (
-                    <>
-                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.3rem' }}>
-                        {getDayName(bestDayCosechar.dateStr, bestDayCosechar.dayIndex)} ({formatDateShort(bestDayCosechar.dateStr)}) — <span style={{ color: bestDayCosechar.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDayCosechar.harvestEval.label}</span>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
-                        {bestDayCosechar.harvestEval.reason} • Lluvia: {bestDayCosechar.rainSum} mm • Viento máx: {bestDayCosechar.maxWind} km/h
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ═══ 2. CLIMA ACTUAL & SEMÁFORO DE LABORES (COMPACTO Y SIN ESPACIOS MUERTOS) ═══ */}
-          <div className="main-grid mb-6">
-            {/* Clima Actual */}
-            <div className="glass-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <Thermometer size={18} style={{ color: 'var(--green)' }} /> Clima Actual en Lote
-                </h2>
-                <span className="weather-badge">
-                  {getWeatherDescription(current.weather_code)}
-                </span>
-              </div>
-
-              <div className="weather-main-grid">
-                {/* Caja de Temperatura Completa (sin huecos vacíos) */}
-                <div className="temp-display-card">
-                  <div>
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Temperatura</span>
-                    <div className="temp-display">
-                      <span className="temp-huge">{Math.round(current.temperature_2m)}°</span>
-                      <span className="temp-unit">C</span>
-                    </div>
-                  </div>
-
-                  <div className="temp-details-row">
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Sensación:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{Math.round(current.apparent_temperature ?? current.temperature_2m)}°C</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Punto Rocío:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{current.dew_point_2m ?? '--'}°C</strong>
-                    </div>
-                    {todayAnalysis && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Máx / Mín hoy:</span>
-                        <strong style={{ color: 'var(--text-primary)' }}>{Math.round(todayAnalysis.maxTemp)}° / {Math.round(todayAnalysis.minTemp)}°</strong>
-                      </div>
                     )}
                   </div>
+
+                  {showDropdown && (searchResults.length > 0 || isSearching) && (
+                    <div className="search-dropdown">
+                      {isSearching ? (
+                        <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Buscando localidades...</div>
+                      ) : (
+                        searchResults.map((item, idx) => (
+                          <div 
+                            key={idx} 
+                            className="search-item"
+                            onClick={() => {
+                              handleSelectCity(item);
+                              setSearchQuery(item.name);
+                            }}
+                          >
+                            <MapPin size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                            <div>
+                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.4rem' }}>
+                                {[item.admin1, item.country].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="weather-metrics">
-                  {/* Wind */}
-                  <div className="metric-box highlighted">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Wind size={16} style={{ color: 'var(--green)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Viento</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                      {current.wind_speed_10m} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>km/h</span>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                      Ráfagas: <strong style={{ color: 'var(--text-primary)' }}>{current.wind_gusts_10m} km/h</strong>
-                    </div>
-                    <div className="wind-direction-pill" style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Navigation 
-                        size={12} 
-                        style={{ transform: `rotate(${current.wind_direction_10m}deg)`, color: 'var(--green)', flexShrink: 0 }}
-                      />
-                      <span style={{ fontSize: '0.65rem' }}>{getWindDirectionName(current.wind_direction_10m)}</span>
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>({current.wind_direction_10m}°)</span>
-                    </div>
-                  </div>
-
-                  {/* Humidity */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Droplets size={16} style={{ color: 'var(--blue)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Humedad</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.relative_humidity_2m}%</div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Delta T: <strong>{deltaT?.deltaT}°C</strong></span>
-                  </div>
-
-                  {/* Precipitation */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <CloudRain size={16} style={{ color: 'var(--blue)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Lluvia</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.precipitation} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>mm</span></div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      {recentRainSum > 0 ? `+${recentRainSum.toFixed(1)} mm (3d)` : 'Sin lluvias previas'}
-                    </span>
-                  </div>
-
-                  {/* UV Index */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Sun size={16} style={{ color: 'var(--yellow)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Índice UV</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                      {daily?.uv_index_max?.[3] ?? '--'}
-                    </div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      {(() => { const uv = daily?.uv_index_max?.[3]; if (!uv) return 'Sin datos'; if (uv <= 2) return 'Bajo'; if (uv <= 5) return 'Moderado'; if (uv <= 7) return 'Alto'; if (uv <= 10) return 'Muy alto'; return 'Extremo'; })()}
-                    </span>
-                  </div>
-
-                  {/* Suelo */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Layers size={16} style={{ color: 'var(--yellow)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Temp. Suelo</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                      {current.soil_temperature_0cm !== undefined ? `${Math.round(current.soil_temperature_0cm)}°` : '--'}
-                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}>C</span>
-                    </div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      {current.soil_moisture_0_to_1cm !== undefined ? `Humedad: ${(current.soil_moisture_0_to_1cm * 100).toFixed(0)}%` : 'Superficie'}
-                    </span>
-                  </div>
-
-                  {/* Presión */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Gauge size={16} style={{ color: 'var(--text-secondary)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Presión</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                      {current.surface_pressure ? Math.round(current.surface_pressure) : '--'}
-                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}> hPa</span>
-                    </div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      {current.surface_pressure ? (current.surface_pressure >= 1013 ? 'Alta — buen tiempo' : current.surface_pressure >= 995 ? 'Normal' : 'Baja — inestable') : ''}
-                    </span>
-                  </div>
-
-                  {/* Evapotranspiración */}
-                  <div className="metric-box">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <Eye size={16} style={{ color: 'var(--green)' }} />
-                      <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>ETo Hoy</span>
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                      {daily?.et0_fao_evapotranspiration?.[3] !== undefined ? daily.et0_fao_evapotranspiration[3].toFixed(1) : '--'}
-                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-secondary)' }}> mm</span>
-                    </div>
-                    <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Evapotranspiración FAO-56</span>
+                {/* Quick Popular Agricultural Cities Chips */}
+                <div style={{ maxWidth: '100%', margin: '0.65rem auto 0' }}>
+                  <div className="city-chips-scroll">
+                    {POPULAR_CITIES.map((c, i) => (
+                      <button
+                        key={i}
+                        className={`city-chip-btn ${selectedCity.name === c.name ? 'active' : ''}`}
+                        onClick={() => handleSelectCity(c)}
+                      >
+                        <MapPin size={11} />
+                        {c.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Task Semaphore */}
-            <div className="glass-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores Agrícolas
-                </h2>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 600 }}>Clima + Suelo + Época</span>
-              </div>
+                {/* Location Pill */}
+                <div style={{ 
+                  marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                  fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)'
+                }}>
+                  <MapPin size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                  <span>{selectedCity.name}</span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                    {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
+                  </span>
+                  <span style={{ 
+                    width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', 
+                    boxShadow: '0 0 6px rgba(34,197,94,0.5)', display: 'inline-block'
+                  }} />
+                  <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+                    EN VIVO · OPEN-METEO
+                  </span>
+                </div>
+              </header>
 
-              <div className="tasks-grid">
-                {[
-                  { task: 'fumigar', label: 'Fumigación de precisión', icon: Wind, rules: currentFumigarEval },
-                  { task: 'pulverizar', label: 'Pulverización terrestre', icon: Crosshair, rules: currentPulverizarEval },
-                  { task: 'cosechar', label: 'Cosecha y trilla de granos', icon: Calendar, rules: currentHarvestEval }
-                ].map(({ task, label, icon: TaskIcon, rules }) => {
-                  return (
-                    <div key={task} className={`state-card state-border-${rules.status}`}>
-                      <div className="state-header">
-                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
-                          <TaskIcon size={15} style={{ color: rules.status === 'green' ? 'var(--green)' : rules.status === 'yellow' ? 'var(--yellow)' : 'var(--red)' }} />
-                          {label}
-                        </span>
-                        <span className={`status-badge badge-${rules.status}`}>
-                          {rules.status === 'green' ? 'APTO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
+              {/* ═══ HERO: PANORAMA INMEDIATO DE DECISIÓN Y SEMÁFORO ═══ */}
+              <div className="glass-panel hero-panorama-card">
+                {/* Top Row: Title + Task Selector */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', paddingBottom: '0.85rem', marginBottom: '0.85rem', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.65rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.2rem' }}>
+                        <Activity size={13} style={{ color: 'var(--green)' }} />
+                        <span style={{ fontSize: '0.62rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Panorama de Decisión Operativa</span>
+                        <span style={{ fontSize: '0.52rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{getFormattedTodayDate()}</span>
+                      </div>
+                      <h2 style={{ fontSize: '1.18rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1.3 }}>
+                        {selectedCity.name}: ¿Conviene entrar al lote hoy?
+                      </h2>
+                    </div>
+
+                    {/* Labor Tabs for Panorama */}
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ 
+                        fontSize: '0.6rem', 
+                        fontWeight: 700, 
+                        color: 'var(--text-secondary)', 
+                        background: 'var(--bg-elevated)', 
+                        padding: '0.2rem 0.5rem', 
+                        borderRadius: '6px', 
+                        border: '1px solid rgba(148,163,184,0.15)', 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '0.25rem',
+                        flexShrink: 0 
+                      }}>
+                        <Filter size={11} style={{ color: 'var(--accent)' }} /> Labor activa:
+                      </span>
+                      {[
+                        { id: 'fumigar', label: 'Fumigación', icon: Wind, eval: currentFumigarEval },
+                        { id: 'pulverizar', label: 'Pulverización', icon: Crosshair, eval: currentPulverizarEval },
+                        { id: 'cosechar', label: 'Cosecha', icon: Calendar, eval: currentHarvestEval }
+                      ].map((task) => {
+                        const TaskIcon = task.icon;
+                        const isActive = heroTask === task.id;
+                        const status = task.eval?.status || 'yellow';
+                        return (
+                          <button
+                            key={task.id}
+                            onClick={() => setHeroTask(task.id)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              padding: '0.3rem 0.6rem',
+                              borderRadius: '8px',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              border: isActive ? `1.5px solid var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` : '1px solid rgba(148,163,184,0.15)',
+                              background: isActive ? `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'}-bg)` : 'var(--bg-card-solid)',
+                              color: 'var(--text-white)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <TaskIcon size={12} style={{ color: `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` }} />
+                            {task.label}: {status === 'green' ? '🟢 APTO' : status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Panorama Cards for Selected Task */}
+                <div className="hero-three-cards-grid">
+                  {/* Ventana Horaria */}
+                  <div className="panorama-box green-highlight">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                      <Play size={13} style={{ color: 'var(--green)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--green)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ventana Apta Hoy</span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                      {(heroTask === 'fumigar' || heroTask === 'pulverizar') && (todayAnalysis?.windows?.length > 0 ? todayAnalysis.windows.join(' | ') : 'Sin ventana óptima')}
+                      {heroTask === 'cosechar' && (todayAnalysis?.harvestEval?.windows?.length > 0 ? todayAnalysis.harvestEval.windows.join(' | ') : (todayAnalysis?.harvestEval?.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana apta'))}
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', fontWeight: 500 }}>
+                      Franja horaria recomendada para {heroTask === 'cosechar' ? 'cosecha' : 'aplicaciones'}
+                    </span>
+                  </div>
+
+                  {/* Diagnóstico */}
+                  <div className="panorama-box amber-highlight">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                      <ShieldAlert size={13} style={{ color: 'var(--yellow)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--yellow)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnóstico de Campo</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.35 }}>
+                      {(heroTask === 'fumigar' || heroTask === 'pulverizar') && currentFumigarEval?.message}
+                      {heroTask === 'cosechar' && currentHarvestEval?.message}
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.2rem', fontWeight: 500 }}>
+                      Viento: {current.wind_speed_10m} km/h • Temp: {current.temperature_2m}°C • Humedad: {current.relative_humidity_2m}%
+                    </span>
+                  </div>
+
+                  {/* Sol y Luz Solar */}
+                  <div className="panorama-box blue-highlight">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem' }}>
+                      <Sun size={13} style={{ color: 'var(--blue)' }} />
+                      <span style={{ fontSize: '0.6rem', color: 'var(--blue)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Luz Solar y Rocío</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginTop: '0.1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Sunrise size={13} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>{formatTimeHHMM(todayAnalysis?.sunrise)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Sunset size={13} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>{formatTimeHHMM(todayAnalysis?.sunset)}</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.3rem', fontWeight: 500 }}>
+                      Duración: <strong style={{ color: 'var(--text-primary)' }}>{calculateDaylightDuration(todayAnalysis?.sunrise, todayAnalysis?.sunset)}</strong> • Rocío: {dewRisk?.level || 'Seco'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Best Day Banner for Selected Task */}
+                {weeklyAnalysis && (
+                  <div className="best-day-banner-prominent" style={{ marginTop: '0.85rem', padding: '0.85rem 1rem' }}>
+                    <div className="best-day-icon-circle" style={{ width: '44px', height: '44px', minWidth: '44px' }}>
+                      <Award size={24} style={{ color: 'var(--yellow)' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ 
+                          fontSize: '0.52rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--yellow)',
+                          background: 'var(--yellow-bg)', padding: '0.12rem 0.5rem', borderRadius: '99px',
+                          border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
+                        }}>
+                          🏆 Mejor día de la semana para {heroTask === 'cosechar' ? 'Cosechar' : 'Fumigar / Pulverizar'}
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>{rules.message}</p>
-                      {rules.action && (
-                        <div style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <ArrowRight size={11} style={{ color: 'var(--green)' }} /> {rules.action}
+                      {(heroTask === 'fumigar' || heroTask === 'pulverizar') && bestDayFumigar && (
+                        <>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.25rem' }}>
+                            {getDayName(bestDayFumigar.dateStr, bestDayFumigar.dayIndex)} ({formatDateShort(bestDayFumigar.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDayFumigar.greenCount} hs óptimas</span>
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.1rem' }}>
+                            {bestDayFumigar.windows.length > 0 ? `Ventanas recomendadas: ${bestDayFumigar.windows.join(' y ')}.` : 'Condiciones con menor viento.'} Viento máx: {bestDayFumigar.maxWind} km/h • Ráfagas: {bestDayFumigar.maxGust} km/h
+                          </div>
+                        </>
+                      )}
+                      {heroTask === 'cosechar' && bestDayCosechar && (
+                        <>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.25rem' }}>
+                            {getDayName(bestDayCosechar.dateStr, bestDayCosechar.dayIndex)} ({formatDateShort(bestDayCosechar.dateStr)}) — <span style={{ color: bestDayCosechar.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDayCosechar.harvestEval.label}</span>
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.1rem' }}>
+                            {bestDayCosechar.harvestEval.reason} • Lluvia: {bestDayCosechar.rainSum} mm • Viento máx: {bestDayCosechar.maxWind} km/h
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ═══ CLIMA ACTUAL EN LOTE (CONDICIONES CLAVE) ═══ */}
+              <div className="glass-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.92rem' }}>
+                    <Thermometer size={17} style={{ color: 'var(--green)' }} /> Clima Actual en Lote
+                  </h2>
+                  <span className="weather-badge">
+                    {getWeatherDescription(current.weather_code)}
+                  </span>
+                </div>
+
+                <div className="weather-main-grid">
+                  <div className="temp-display-card">
+                    <div>
+                      <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Temperatura</span>
+                      <div className="temp-display">
+                        <span className="temp-huge" style={{ fontSize: '3.5rem' }}>{Math.round(current.temperature_2m)}°</span>
+                        <span className="temp-unit">C</span>
+                      </div>
+                    </div>
+
+                    <div className="temp-details-row">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Sensación:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{Math.round(current.apparent_temperature ?? current.temperature_2m)}°C</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Punto Rocío:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{current.dew_point_2m ?? '--'}°C</strong>
+                      </div>
+                      {todayAnalysis && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Máx / Mín hoy:</span>
+                          <strong style={{ color: 'var(--text-primary)' }}>{Math.round(todayAnalysis.maxTemp)}° / {Math.round(todayAnalysis.minTemp)}°</strong>
                         </div>
                       )}
                     </div>
-                  );
-                })}
+                  </div>
+
+                  <div className="weather-metrics">
+                    {/* Wind */}
+                    <div className="metric-box highlighted">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <Wind size={15} style={{ color: 'var(--green)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Viento</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                        {current.wind_speed_10m} <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)' }}>km/h</span>
+                      </div>
+                      <div style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                        Ráfagas: <strong style={{ color: 'var(--text-primary)' }}>{current.wind_gusts_10m} km/h</strong>
+                      </div>
+                      <div className="wind-direction-pill" style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Navigation 
+                          size={11} 
+                          style={{ transform: `rotate(${current.wind_direction_10m}deg)`, color: 'var(--green)', flexShrink: 0 }}
+                        />
+                        <span style={{ fontSize: '0.62rem' }}>{getWindDirectionName(current.wind_direction_10m)}</span>
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)' }}>({current.wind_direction_10m}°)</span>
+                      </div>
+                    </div>
+
+                    {/* Humidity */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <Droplets size={15} style={{ color: 'var(--blue)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Humedad</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.relative_humidity_2m}%</div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Delta T: <strong>{deltaT?.deltaT}°C</strong></span>
+                    </div>
+
+                    {/* Precipitation */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <CloudRain size={15} style={{ color: 'var(--blue)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Lluvia</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>{current.precipitation} <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)' }}>mm</span></div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {recentRainSum > 0 ? `+${recentRainSum.toFixed(1)} mm (3d)` : 'Sin lluvias previas'}
+                      </span>
+                    </div>
+
+                    {/* UV Index */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <Sun size={15} style={{ color: 'var(--yellow)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Índice UV</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                        {daily?.uv_index_max?.[3] ?? '--'}
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {(() => { const uv = daily?.uv_index_max?.[3]; if (!uv) return 'Sin datos'; if (uv <= 2) return 'Bajo'; if (uv <= 5) return 'Moderado'; if (uv <= 7) return 'Alto'; if (uv <= 10) return 'Muy alto'; return 'Extremo'; })()}
+                      </span>
+                    </div>
+
+                    {/* Suelo */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <Layers size={15} style={{ color: 'var(--yellow)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Temp. Suelo</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                        {current.soil_temperature_0cm !== undefined ? `${Math.round(current.soil_temperature_0cm)}°` : '--'}
+                        <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)' }}>C</span>
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {current.soil_moisture_0_to_1cm !== undefined ? `Humedad: ${(current.soil_moisture_0_to_1cm * 100).toFixed(0)}%` : 'Superficie'}
+                      </span>
+                    </div>
+
+                    {/* Presión */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <Gauge size={15} style={{ color: 'var(--text-secondary)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Presión</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                        {current.surface_pressure ? Math.round(current.surface_pressure) : '--'}
+                        <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)' }}> hPa</span>
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {current.surface_pressure ? (current.surface_pressure >= 1013 ? 'Alta — estable' : current.surface_pressure >= 995 ? 'Normal' : 'Baja — inestable') : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* ═══ RIGHT COLUMN: RADAR METEOROLÓGICO INTERACTIVO WINDY (EN GRANDE) ═══ */}
+            <div className="desktop-right-column">
+              <div className="glass-panel windy-desktop-card">
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <div>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                      <Radio size={18} style={{ color: 'var(--green)' }} /> Radar Meteorológico en Vivo (Viento &amp; Lluvias)
+                    </h2>
+                    <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                      Monitoreo satelital ECMWF en tiempo real para la zona de {selectedCity.name}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-primary)', fontWeight: 700, background: 'var(--bg-elevated)', padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
+                    {selectedCity.name} ({selectedCity.lat.toFixed(2)}, {selectedCity.lon.toFixed(2)})
+                  </span>
+                </div>
+                <div className="iframe-container">
+                  <iframe 
+                    src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=7&overlay=wind&product=ecmwf&level=surface&lat=${selectedCity.lat}&lon=${selectedCity.lon}&detailLat=${selectedCity.lat}&detailLon=${selectedCity.lon}`}
+                    title="Windy Map"
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════════
+              JERARQUÍA COMPLETA HACIA ABAJO (ANCHO COMPLETO PARA ESCRITORIO):
+              1. Semáforo de Labores Agrícolas
+              2. Centro de Consejos Prácticos y Decisiones de Campo
+              3. Estado del ambiente y el suelo (Delta T, Inversión, Piso, Heladas)
+              4. PLANIFICADOR OPERATIVO SEMANAL (7 DÍAS EN ANCHO COMPLETO)
+              5. Calculadora de Pulverización y Caldo
+              ══════════════════════════════════════════════════════════════ */}
+
+          {/* ═══ 1. SEMÁFORO DE LABORES AGRÍCOLAS DETALLADO ═══ */}
+          <div className="glass-panel mb-6">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                <ShieldAlert size={18} style={{ color: 'var(--green)' }} /> Semáforo de Labores Agrícolas
+              </h2>
+              <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 600 }}>Clima + Suelo + Época en Lote</span>
+            </div>
+
+            <div className="tasks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              {[
+                { task: 'fumigar', label: 'Fumigación de precisión', icon: Wind, rules: currentFumigarEval },
+                { task: 'pulverizar', label: 'Pulverización terrestre', icon: Crosshair, rules: currentPulverizarEval },
+                { task: 'cosechar', label: 'Cosecha y trilla de granos', icon: Calendar, rules: currentHarvestEval }
+              ].map(({ task, label, icon: TaskIcon, rules }) => {
+                return (
+                  <div key={task} className={`state-card state-border-${rules.status}`}>
+                    <div className="state-header">
+                      <span style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+                        <TaskIcon size={15} style={{ color: rules.status === 'green' ? 'var(--green)' : rules.status === 'yellow' ? 'var(--yellow)' : 'var(--red)' }} />
+                        {label}
+                      </span>
+                      <span className={`status-badge badge-${rules.status}`}>
+                        {rules.status === 'green' ? 'APTO' : rules.status === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>{rules.message}</p>
+                    {rules.action && (
+                      <div style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <ArrowRight size={11} style={{ color: 'var(--green)' }} /> {rules.action}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* ═══ 3. CENTRO DE CONSEJOS Y TOMA DE DECISIONES AGRONÓMICAS ═══ */}
+          {/* ═══ 2. CENTRO DE CONSEJOS Y TOMA DE DECISIONES AGRONÓMICAS ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
@@ -854,38 +882,15 @@ function App() {
             </div>
           </div>
 
-          {/* ═══ 4. RADAR METEOROLÓGICO INTERACTIVO WINDY ═══ */}
-          <div className="glass-panel mb-6">
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
-              <div>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                  <Radio size={18} style={{ color: 'var(--green)' }} /> Radar Meteorológico en Vivo (Viento &amp; Lluvias)
-                </h2>
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                  Monitoreo satelital ECMWF para la zona de {selectedCity.name}
-                </p>
-              </div>
-              <span style={{ fontSize: '0.62rem', color: 'var(--text-primary)', fontWeight: 700, background: 'var(--bg-elevated)', padding: '0.25rem 0.6rem', borderRadius: '6px' }}>
-                {selectedCity.name} ({selectedCity.lat.toFixed(2)}, {selectedCity.lon.toFixed(2)})
-              </span>
-            </div>
-            <div className="iframe-container">
-              <iframe 
-                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=7&overlay=wind&product=ecmwf&level=surface&lat=${selectedCity.lat}&lon=${selectedCity.lon}&detailLat=${selectedCity.lat}&detailLon=${selectedCity.lon}`}
-                title="Windy Map"
-              ></iframe>
-            </div>
-          </div>
-
-          {/* ═══ 5. MONITORES AGRONÓMICOS AVANZADOS (SUELO, DELTA T, INVERSIÓN, HELADAS) ═══ */}
+          {/* ═══ 3. MONITORES AGRONÓMICOS AVANZADOS (SUELO, DELTA T, INVERSIÓN, HELADAS) ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
                   <Gauge size={18} style={{ color: 'var(--green)' }} /> Estado del ambiente y el suelo
-                </h2>
-                <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }} className="sm:inline">
-                  Delta T · Inversión · Piso · Heladas
-                </span>
+              </h2>
+              <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 600 }} className="sm:inline">
+                Delta T · Inversión · Piso · Heladas
+              </span>
             </div>
 
             <div className="insights-grid">
@@ -969,16 +974,16 @@ function App() {
             </div>
           </div>
 
-          {/* ═══ 6. PLANIFICADOR OPERATIVO SEMANAL (7 DÍAS) ═══ */}
+          {/* ═══ 4. PLANIFICADOR OPERATIVO SEMANAL (7 DÍAS EN ANCHO COMPLETO PARA ESCRITORIO) ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <div>
-                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
-                    <Calendar size={18} style={{ color: 'var(--green)' }} /> Planificador Operativo Semanal
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1.05rem' }}>
+                    <Calendar size={19} style={{ color: 'var(--green)' }} /> Pronóstico Extendido Semanal (7 Días Operativos)
                   </h2>
-                  <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                    Filtrá por labor y fijáte qué días y horarios te convienen en los próximos 7 días.
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    Visualizá de corrido los 7 días de la semana con ventanas operativas, vientos por período, lluvia y temperaturas.
                   </p>
                 </div>
 
@@ -987,7 +992,7 @@ function App() {
                   background: 'var(--bg-elevated)', padding: '0.3rem 0.65rem', borderRadius: '99px',
                   border: '1px solid rgba(148,163,184,0.12)'
                 }}>
-                  {selectedCity.name} · 7 Días
+                  {selectedCity.name} · 7 Días Completos
                 </span>
               </div>
 
@@ -1067,7 +1072,8 @@ function App() {
               )}
             </div>
 
-            <div className="forecast-cards-grid">
+            {/* 7 DÍAS EN FILA COMPLETA PARA DESKTOP */}
+            <div className="forecast-cards-grid-7days forecast-cards-grid">
               {weeklyAnalysis?.days?.map((dayInfo, idx) => {
                 const dayName = getDayName(dayInfo.dateStr, idx);
                 const dateFormatted = formatDateShort(dayInfo.dateStr);
@@ -1080,49 +1086,49 @@ function App() {
                     {/* Header */}
                     <div className="card-top-header">
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.9rem' }}>{dayName}</span>
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700 }}>{dateFormatted}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.85rem' }}>{dayName}</span>
+                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 700 }}>{dateFormatted}</span>
                           {idx === 0 && <span className="today-badge">HOY</span>}
                         </div>
-                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.15rem', fontWeight: 500 }}>
-                          <CloudSun size={12} style={{ color: 'var(--text-muted)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.15rem', fontWeight: 500 }}>
+                          <CloudSun size={11} style={{ color: 'var(--text-muted)' }} />
                           {getWeatherDescription(dayInfo.weatherCode)}
                         </span>
                       </div>
 
-                      <div className="card-temp-pill">
-                        <span style={{ fontWeight: 900, color: 'var(--text-white)' }}>{Math.round(dayInfo.maxTemp)}°</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 700 }}> / {Math.round(dayInfo.minTemp)}°</span>
+                      <div className="card-temp-pill" style={{ padding: '0.15rem 0.45rem' }}>
+                        <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.78rem' }}>{Math.round(dayInfo.maxTemp)}°</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontWeight: 700 }}> / {Math.round(dayInfo.minTemp)}°</span>
                       </div>
                     </div>
 
                     {/* Tasks Details */}
-                    <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <div style={{ marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       {/* Fumigar / Pulverizar */}
                       {(plannerFilter === 'todos' || plannerFilter === 'fumigar' || plannerFilter === 'pulverizar') && (
-                        <div style={{ paddingBottom: '0.45rem', borderBottom: plannerFilter === 'todos' ? '1px solid rgba(148,163,184,0.08)' : 'none' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
-                              <Wind size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                              {plannerFilter === 'pulverizar' ? 'Pulverización' : 'Fumigación / Pulverización'}
+                        <div style={{ paddingBottom: '0.35rem', borderBottom: plannerFilter === 'todos' ? '1px solid rgba(148,163,184,0.08)' : 'none' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 700, marginBottom: '0.2rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
+                              <Wind size={11} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                              {plannerFilter === 'pulverizar' ? 'Pulverización' : 'Fumigación'}
                             </span>
-                            <span className={`status-badge badge-${dayInfo.overallStatus}`}>
+                            <span className={`status-badge badge-${dayInfo.overallStatus}`} style={{ fontSize: '0.52rem', padding: '0.12rem 0.4rem' }}>
                               {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
                             </span>
                           </div>
                           {dayInfo.windows.length > 0 ? (
                             <div style={{ 
-                              fontSize: '0.6rem', fontWeight: 800, color: 'var(--green)', 
-                              background: 'var(--green-bg)', padding: '0.3rem 0.45rem', borderRadius: '6px',
+                              fontSize: '0.58rem', fontWeight: 800, color: 'var(--green)', 
+                              background: 'var(--green-bg)', padding: '0.25rem 0.4rem', borderRadius: '6px',
                               border: '1px solid rgba(34,197,94,0.2)'
                             }}>
                               Ventana: {dayInfo.windows.join(' | ')}
                             </div>
                           ) : (
                             <div style={{ 
-                              fontSize: '0.6rem', fontWeight: 700, color: 'var(--red)', 
-                              background: 'var(--red-bg)', padding: '0.3rem 0.45rem', borderRadius: '6px',
+                              fontSize: '0.58rem', fontWeight: 700, color: 'var(--red)', 
+                              background: 'var(--red-bg)', padding: '0.25rem 0.4rem', borderRadius: '6px',
                               border: '1px solid rgba(239,68,68,0.15)'
                             }}>
                               {dayInfo.nonOperationalReason}
@@ -1134,25 +1140,25 @@ function App() {
                       {/* Cosecha */}
                       {(plannerFilter === 'todos' || plannerFilter === 'cosechar') && (
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, marginBottom: '0.15rem' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-primary)' }}>
-                              <Calendar size={12} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 700, marginBottom: '0.15rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-primary)' }}>
+                              <Calendar size={11} style={{ color: 'var(--yellow)', flexShrink: 0 }} />
                               Cosecha
                             </span>
-                            <span className={`status-badge badge-${dayInfo.harvestEval.status}`}>
+                            <span className={`status-badge badge-${dayInfo.harvestEval.status}`} style={{ fontSize: '0.52rem', padding: '0.12rem 0.4rem' }}>
                               {dayInfo.harvestEval.label}
                             </span>
                           </div>
-                          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.2rem' }}>
+                          <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '0.15rem', lineHeight: 1.3 }}>
                             {dayInfo.harvestEval.reason}
                           </div>
                           {plannerFilter === 'cosechar' && (
                             <div style={{ 
-                              fontSize: '0.6rem', fontWeight: 800, color: dayInfo.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)', 
+                              fontSize: '0.58rem', fontWeight: 800, color: dayInfo.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)', 
                               background: dayInfo.harvestEval.status === 'green' ? 'var(--green-bg)' : 'var(--yellow-bg)', 
-                              padding: '0.25rem 0.45rem', borderRadius: '6px', marginTop: '0.2rem'
+                              padding: '0.2rem 0.4rem', borderRadius: '6px', marginTop: '0.15rem'
                             }}>
-                              Mejores horas: {dayInfo.harvestEval.windows?.length > 0 ? dayInfo.harvestEval.windows.join(' | ') : (dayInfo.harvestEval.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana apta')}
+                              {dayInfo.harvestEval.windows?.length > 0 ? dayInfo.harvestEval.windows.join(' | ') : (dayInfo.harvestEval.status !== 'red' ? '12:00 a 18:00 hs' : 'Sin ventana')}
                             </div>
                           )}
                         </div>
@@ -1160,15 +1166,15 @@ function App() {
                     </div>
 
                     {/* Wind Shifts */}
-                    <div style={{ marginTop: '0.65rem', paddingTop: '0.55rem', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
-                      <div style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Compass size={11} style={{ color: 'var(--green)' }} /> Viento
+                    <div style={{ marginTop: '0.55rem', paddingTop: '0.45rem', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+                      <div style={{ fontSize: '0.52rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <Compass size={10} style={{ color: 'var(--green)' }} /> Viento
                       </div>
                       <div className="wind-shifts-grid">
                         {dayInfo.windShifts.map((shift, sIdx) => (
-                          <div key={sIdx} className="wind-shift-item">
-                            <span style={{ fontSize: '0.5rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{shift.period.split(' ')[0]}</span>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <div key={sIdx} className="wind-shift-item" style={{ padding: '0.25rem 0.35rem' }}>
+                            <span style={{ fontSize: '0.48rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{shift.period.split(' ')[0]}</span>
+                            <span style={{ fontSize: '0.58rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
                               {shift.dir} {shift.speed}
                             </span>
                           </div>
@@ -1177,18 +1183,18 @@ function App() {
                     </div>
 
                     {/* Footer */}
-                    <div style={{ marginTop: '0.55rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(148,163,184,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          <Sunrise size={11} style={{ color: 'var(--yellow)', flexShrink: 0 }} /> {formatTimeHHMM(dayInfo.sunrise)}
+                    <div style={{ marginTop: '0.5rem', paddingTop: '0.35rem', borderTop: '1px solid rgba(148,163,184,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                          <Sunrise size={10} style={{ color: 'var(--yellow)', flexShrink: 0 }} /> {formatTimeHHMM(dayInfo.sunrise)}
                         </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          <Sunset size={11} style={{ color: 'var(--yellow)', flexShrink: 0 }} /> {formatTimeHHMM(dayInfo.sunset)}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                          <Sunset size={10} style={{ color: 'var(--yellow)', flexShrink: 0 }} /> {formatTimeHHMM(dayInfo.sunset)}
                         </span>
                       </div>
                       {dayInfo.rainSum > 0 ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--blue)', fontWeight: 800 }}>
-                          <CloudRain size={11} /> {dayInfo.rainSum} mm {dayInfo.rainSchedule ? `(${dayInfo.rainSchedule})` : ''}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', color: 'var(--blue)', fontWeight: 800 }}>
+                          <CloudRain size={10} /> {dayInfo.rainSum} mm
                         </span>
                       ) : (
                         <span>Sin lluvia</span>
@@ -1197,71 +1203,69 @@ function App() {
                   </div>
                 );
               })}
+            </div>
 
+            {/* Side-by-side cards below 7 days: Resumen Semanal & Guía BPA */}
+            <div className="forecast-side-cards-grid">
               {/* Summary Card */}
               <div className="forecast-day-card summary-card-slot">
-                <div className="card-top-header" style={{ marginBottom: '0.5rem' }}>
+                <div className="card-top-header" style={{ marginBottom: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <BarChart3 size={18} style={{ color: 'var(--blue)', flexShrink: 0 }} />
-                    <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.9rem' }}>Resumen Semanal</span>
+                    <BarChart3 size={17} style={{ color: 'var(--blue)', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.88rem' }}>Resumen Semanal Consolidado</span>
                   </div>
                   <span className="weather-badge">7 Días</span>
                 </div>
 
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginBottom: '0.65rem', lineHeight: 1.5 }}>
-                  Consolidado meteorológico para planificación en {selectedCity.name}.
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.65rem', lineHeight: 1.5 }}>
+                  Consolidado meteorológico para planificación operativa en {selectedCity.name}.
                 </p>
 
-                <div className="summary-stats-grid">
-                  <div className="summary-stat-box">
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Horas Aptas Aplicación</span>
-                    <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--green)' }}>{totalWeeklyGreenHours} hs</span>
+                <div className="summary-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                  <div className="summary-stat-box" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Horas Aptas</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--green)' }}>{totalWeeklyGreenHours} hs</span>
                   </div>
-                  <div className="summary-stat-box">
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Lluvia Acumulada</span>
-                    <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--blue)' }}>{totalWeeklyRainfall} mm</span>
+                  <div className="summary-stat-box" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Lluvia Total</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--blue)' }}>{totalWeeklyRainfall} mm</span>
                   </div>
-                  <div className="summary-stat-box">
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Ráfaga Máxima</span>
-                    <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--yellow)' }}>{maxWeeklyGust} km/h</span>
+                  <div className="summary-stat-box" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Ráfaga Máx</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--yellow)' }}>{maxWeeklyGust} km/h</span>
                   </div>
                 </div>
               </div>
 
               {/* BPA Card */}
               <div className="forecast-day-card summary-card-slot">
-                <div className="card-top-header" style={{ marginBottom: '0.5rem' }}>
+                <div className="card-top-header" style={{ marginBottom: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <CheckSquare size={18} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                    <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.9rem' }}>Guía BPA</span>
+                    <CheckSquare size={17} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.88rem' }}>Guía Rápida de Buenas Prácticas Agrícolas (BPA)</span>
                   </div>
                   <span className="today-badge">BPA</span>
                 </div>
 
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.5 }}>
-                  Las reglas de oro que ningún aplicador debería saltarse:
-                </p>
-
-                <ul className="bpa-checklist">
+                <ul className="bpa-checklist" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.4rem' }}>
                   <li>🟢 <strong>Viento óptimo:</strong> 3 a 15 km/h (evita deriva e inversión).</li>
                   <li>🟢 <strong>Delta T ideal:</strong> 2°C a 8°C (evita evaporación rápida).</li>
                   <li>🟡 <strong>Ráfagas &gt; 15 km/h:</strong> Obligatorio boquillas AI antideriva.</li>
                   <li>🔴 <strong>Temp &gt; 30°C / ΔT &gt; 10°C:</strong> Suspender aplicaciones.</li>
-                  <li>🌾 <strong>Cosecha de grano:</strong> Iniciar tras secado de rocío matinal con HR &lt; 65%.</li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* ═══ 7. CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO (HERRAMIENTA ESPECÍFICA) ═══ */}
+          {/* ═══ 5. CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO ═══ */}
           <div className="glass-panel mb-6">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
                   <Calculator size={18} style={{ color: 'var(--green)' }} /> Calculador Rápido de Caldo y Cobertura (Tanqueada)
                 </h2>
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                  Ponele los números de tu máquina y ves al toque cuántas hectáreas por tanque y cuánto producto llevarte.
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                  Ponele los números de tu máquina y calculá hectáreas por tanque y volumen de producto comercial necesario.
                 </p>
               </div>
               <span className="quick-param-badge">Herramienta Operativa</span>

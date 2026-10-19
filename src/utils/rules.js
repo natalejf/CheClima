@@ -7,7 +7,105 @@ import { getWindDirectionName, getSouthernHemisphereSeason } from './weather';
  * Southern Hemisphere seasonal agronomic stage, and simplified plain-language explanations.
  */
 
-// General spraying thresholds (BPA - Buenas Prácticas Agrícolas)
+// Chemical product profiles with dedicated agronomic sensitivities
+export const SPRAY_PROFILES = {
+  herbicida: {
+    id: 'herbicida',
+    name: 'Herbicida (Barbecho / Post)',
+    icon: 'Shield',
+    desc: 'Mayor volumen y tamaño de gota. Prioridad estricta en control de deriva a lotes linderos.',
+    thresholds: {
+      minWind: 3,
+      idealMaxWind: 16,
+      limitMaxWind: 19,
+      criticalWind: 22,
+      maxGust: 25,
+      maxTemp: 30,
+      warningTemp: 28,
+      minHum: 40,
+      idealDeltaTMin: 2,
+      idealDeltaTMax: 8,
+      criticalDeltaT: 10
+    }
+  },
+  fungicida: {
+    id: 'fungicida',
+    name: 'Fungicida (Trigo / Soja / Maíz)',
+    icon: 'Droplets',
+    desc: 'Exige penetración al estrato medio/inferior y gotas medianas. Muy sensible a evaporación y rocío.',
+    thresholds: {
+      minWind: 3,
+      idealMaxWind: 13,
+      limitMaxWind: 16,
+      criticalWind: 19,
+      maxGust: 22,
+      maxTemp: 28,
+      warningTemp: 26,
+      minHum: 50,
+      idealDeltaTMin: 2,
+      idealDeltaTMax: 7,
+      criticalDeltaT: 9
+    }
+  },
+  insecticida: {
+    id: 'insecticida',
+    name: 'Insecticida (Orugas / Chinches)',
+    icon: 'Target',
+    desc: 'Gotas finas a medianas para impacto directo. Alta vulnerabilidad a vientos moderados y baja humedad.',
+    thresholds: {
+      minWind: 3,
+      idealMaxWind: 12,
+      limitMaxWind: 15,
+      criticalWind: 18,
+      maxGust: 20,
+      maxTemp: 27,
+      warningTemp: 25,
+      minHum: 55,
+      idealDeltaTMin: 2,
+      idealDeltaTMax: 6.5,
+      criticalDeltaT: 8.5
+    }
+  },
+  foliar: {
+    id: 'foliar',
+    name: 'Fertilización Foliar / Bioestimulante',
+    icon: 'Sparkles',
+    desc: 'Absorción estomática lenta. Requiere hojas túrgidas, sin estrés térmico y humedad relativa alta.',
+    thresholds: {
+      minWind: 2,
+      idealMaxWind: 15,
+      limitMaxWind: 18,
+      criticalWind: 21,
+      maxGust: 24,
+      maxTemp: 26,
+      warningTemp: 24,
+      minHum: 60,
+      idealDeltaTMin: 1.5,
+      idealDeltaTMax: 6,
+      criticalDeltaT: 8
+    }
+  }
+};
+
+// Application methods (Terrestre vs Aéreo / Dron)
+export const SPRAY_METHODS = {
+  terrestre: {
+    id: 'terrestre',
+    name: 'Terrestre (Botalón)',
+    windPenaltyFactor: 1.0,
+    gustLimit: 25,
+    desc: 'Pulverizadora autopropulsada o de arrastre (botalón a 50 cm del cultivo).'
+  },
+  aereo: {
+    id: 'aereo',
+    name: 'Aérea (Avión / Dron)',
+    windPenaltyFactor: 1.35, // More vulnerable to wind drift
+    gustLimit: 18,
+    desc: 'Aplicación aérea o dron agrícola: márgenes de viento y ráfagas mucho más estrechos.'
+  }
+};
+
+// General fallback spraying thresholds (BPA - Buenas Prácticas Agrícolas)
 export const SPRAY_THRESHOLDS = {
   minWind: 3,     // km/h (below 3 km/h is thermal inversion risk)
   idealMaxWind: 15, // km/h (ideal ceiling for medium droplets)
@@ -69,8 +167,8 @@ export const calculateDeltaT = (temp, hum) => {
  * Evaluates general task conditions: Fumigar, Pulverizar, Cosechar.
  * Considers current weather, recent accumulated rainfall (past 3 days), and seasonal context.
  */
-export const evaluateConditions = (task, current, recentRainSum = 0) => {
-  if (!current) return { status: 'yellow', message: 'Cargando datos...', action: '', seasonNote: '' };
+export const evaluateConditions = (task, current, recentRainSum = 0, profileId = 'herbicida', methodId = 'terrestre') => {
+  if (!current) return { status: 'yellow', message: 'Cargando datos...', action: '', seasonNote: '', score: null };
 
   const {
     temperature_2m: temp,
@@ -84,6 +182,7 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
   const season = getSouthernHemisphereSeason();
 
   if (task === 'pulverizar' || task === 'fumigar') {
+    const sprayScoreResult = calculateSprayScore({ temp, hum, wind, gusts, rain }, profileId, methodId);
     // Current active rain
     if (rain > 0) {
       return { 
@@ -166,9 +265,15 @@ export const evaluateConditions = (task, current, recentRainSum = 0) => {
     }
 
     return { 
-      status: 'green', 
-      message: `Todo en orden para salir al campo. Viento, temperatura y humedad están dentro del rango ideal.`,
-      action: 'Arrancá tranquilo con presión normal. Ventana abierta para trabajar bien.'
+      status: sprayScoreResult.status,
+      level: sprayScoreResult.level,
+      score: sprayScoreResult.score,
+      message: sprayScoreResult.reason,
+      action: sprayScoreResult.score >= 80 
+        ? 'Arrancá tranquilo con presión normal. Ventana abierta para trabajar bien.'
+        : sprayScoreResult.score >= 50
+        ? 'Verificá tamaño de gota y usá coadyuvante antievaporante o pastillas antideriva.'
+        : 'Condiciones complejas. Monitoreá viento y ráfagas cada 30 minutos.'
     };
   }
 
@@ -246,36 +351,175 @@ export const evaluateDailyHarvest = (rainSum, maxHum, minHum, recentRain = 0) =>
 };
 
 /**
- * Evaluates a single hour for spraying suitability.
+ * Calculates a continuous Spray Index (0 to 100) and evaluation
+ * Inspired by professional agronomic modeling (Delta T, effective wind, gusts, product profile, and method).
+ * 
+ * Levels:
+ * 85 - 100: Excelente (l4 - Verde oscuro)
+ * 70 - 84:  Buena (l3 - Verde claro)
+ * 50 - 69:  Aceptable (l2 - Amarillo)
+ * 35 - 49:  Riesgosa (l1 - Ocre / Naranja)
+ * 0 - 34:   No recomendable (l0 - Rojo / Tierra)
  */
-export const evaluateHourlySpraying = (hourData) => {
+export const calculateSprayScore = (hourData, profileId = 'herbicida', methodId = 'terrestre') => {
   const { temp, hum, wind, gusts, rain } = hourData;
+  const profile = SPRAY_PROFILES[profileId] || SPRAY_PROFILES.herbicida;
+  const method = SPRAY_METHODS[methodId] || SPRAY_METHODS.terrestre;
+  const th = profile.thresholds;
+
   const { deltaT } = calculateDeltaT(temp, hum);
+  const effectiveWind = (wind ?? 0) * method.windPenaltyFactor;
+  const currentGust = gusts ?? effectiveWind;
 
-  if (rain > 0) {
-    return { status: 'red', label: 'Lluvia', reason: `Lluvia activa (${rain} mm)` };
-  }
-  if (wind > SPRAY_THRESHOLDS.criticalWind || gusts > 26) {
-    return { status: 'red', label: 'Viento Crítico', reason: `Viento ${wind} km/h (Ráfagas ${gusts} km/h)` };
-  }
-  if (temp > SPRAY_THRESHOLDS.maxTemp) {
-    return { status: 'red', label: 'Calor Extremo', reason: `Temperatura alta (${temp}°C)` };
-  }
-  if (deltaT > 10) {
-    return { status: 'red', label: 'Delta T Alto', reason: `Delta T crítico (${deltaT}°C)` };
-  }
-
-  if (wind < SPRAY_THRESHOLDS.minWind) {
-    return { status: 'yellow', label: 'Viento Calmo', reason: `Viento < 3 km/h (Riesgo Inversión)` };
-  }
-  if (wind > SPRAY_THRESHOLDS.idealMaxWind) {
-    return { status: 'yellow', label: 'Viento Límite', reason: `Viento ${wind} km/h (Exige antideriva)` };
-  }
-  if (temp > 27 || hum < 40 || deltaT > 8) {
-    return { status: 'yellow', label: 'Evaporación', reason: `ΔT ${deltaT}°C • HR ${hum}% (Usar antievaporante)` };
+  // STRICT BLOCKERS (Score = 0)
+  if ((rain ?? 0) > 0.1) {
+    return {
+      score: 0,
+      level: 'l0',
+      status: 'red',
+      label: 'Lluvia activa',
+      reason: `Lluvia (${rain} mm) — lavado total de caldo.`,
+      confidence: 'alta'
+    };
   }
 
-  return { status: 'green', label: 'Óptimo', reason: 'Condiciones perfectas para aplicar' };
+  if (effectiveWind > th.criticalWind || currentGust > method.gustLimit) {
+    return {
+      score: 0,
+      level: 'l0',
+      status: 'red',
+      label: 'Viento crítico',
+      reason: `Viento ${wind} km/h (Ráfagas ${gusts} km/h) excede el marbete seguro.`,
+      confidence: 'alta'
+    };
+  }
+
+  if (temp > th.maxTemp) {
+    return {
+      score: Math.max(0, Math.round(20 - (temp - th.maxTemp) * 5)),
+      level: 'l0',
+      status: 'red',
+      label: 'Calor extremo',
+      reason: `Temperatura ${temp}°C evapora la gota antes del impacto.`,
+      confidence: 'alta'
+    };
+  }
+
+  if (deltaT > th.criticalDeltaT) {
+    return {
+      score: Math.max(0, Math.round(25 - (deltaT - th.criticalDeltaT) * 10)),
+      level: 'l0',
+      status: 'red',
+      label: 'Delta T crítico',
+      reason: `ΔT ${deltaT}°C — desecación inmediata de gotas.`,
+      confidence: 'alta'
+    };
+  }
+
+  // CONTINUOUS SCORING (Starts at 100 base)
+  let score = 100;
+
+  // 1. Wind & Gust Penalties
+  if (effectiveWind < th.minWind) {
+    // Thermal inversion risk when wind is too low (calm)
+    const calmPenalty = (th.minWind - effectiveWind) * 16;
+    score -= calmPenalty; // Wind near 0 drops score to ~52 (calma riesgosa)
+  } else if (effectiveWind > th.idealMaxWind) {
+    const windPenalty = ((effectiveWind - th.idealMaxWind) / (th.criticalWind - th.idealMaxWind)) * 40;
+    score -= windPenalty;
+  }
+
+  if (currentGust > th.idealMaxWind) {
+    const gustPenalty = Math.min(25, (currentGust - th.idealMaxWind) * 3);
+    score -= gustPenalty;
+  }
+
+  // 2. Delta T & Evaporation Penalties
+  if (deltaT < th.idealDeltaTMin) {
+    // Too cold or humid (high drift float risk)
+    const lowDtPenalty = (th.idealDeltaTMin - deltaT) * 14;
+    score -= lowDtPenalty;
+  } else if (deltaT > th.idealDeltaTMax) {
+    const highDtPenalty = ((deltaT - th.idealDeltaTMax) / (th.criticalDeltaT - th.idealDeltaTMax)) * 38;
+    score -= highDtPenalty;
+  }
+
+  // 3. Humidity constraints
+  if (hum < th.minHum) {
+    score -= Math.min(20, (th.minHum - hum) * 1.2);
+  }
+
+  // 4. Heat constraint
+  if (temp > th.warningTemp) {
+    score -= (temp - th.warningTemp) * 6;
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let level = 'l4';
+  let status = 'green';
+  let label = 'Excelente';
+  let reason = 'Condiciones óptimas: gota entera, sin deriva ni evaporación.';
+
+  if (score >= 80) {
+    level = 'l4';
+    status = 'green';
+    label = 'Excelente';
+    reason = 'Condición óptima para aplicar.';
+  } else if (score >= 65) {
+    level = 'l3';
+    status = 'green';
+    label = 'Buena';
+    reason = 'Ventana muy favorable con pastillas convencionales o abanico.';
+  } else if (score >= 50) {
+    level = 'l2';
+    status = 'yellow';
+    label = 'Aceptable';
+    reason = effectiveWind > th.idealMaxWind 
+      ? `Viento ${wind} km/h: usar pastillas antideriva con aire inducido.` 
+      : deltaT > th.idealDeltaTMax 
+      ? `ΔT ${deltaT}°C: agregar aceite antievaporante al caldo.` 
+      : 'Requiere monitoreo constante en lote.';
+  } else if (score >= 35) {
+    level = 'l1';
+    status = 'yellow';
+    label = 'Riesgosa';
+    reason = effectiveWind < th.minWind 
+      ? 'Viento calmo (<3 km/h): riesgo de inversión térmica y deriva.' 
+      : `Viento o ráfagas al límite (${wind} km/h) y evaporación.`;
+  } else {
+    level = 'l0';
+    status = 'red';
+    label = 'No recomendable';
+    reason = 'Condiciones desfavorables: alto riesgo de pérdida de producto o deriva.';
+  }
+
+  return {
+    score,
+    level,
+    status,
+    label,
+    reason,
+    deltaT,
+    wind,
+    gusts,
+    temp,
+    hum
+  };
+};
+
+/**
+ * Evaluates a single hour for spraying suitability (backward-compatible wrapper).
+ */
+export const evaluateHourlySpraying = (hourData, profileId = 'herbicida', methodId = 'terrestre') => {
+  const result = calculateSprayScore(hourData, profileId, methodId);
+  return {
+    status: result.status,
+    level: result.level,
+    score: result.score,
+    label: result.label,
+    reason: result.reason
+  };
 };
 
 /**
@@ -466,7 +710,7 @@ export const evaluateRainfastness = (hourlyRainNext6h) => {
  * Analyzes weather for Spraying & Harvesting operational windows.
  * Correctly distinguishes today (matches actual date string) and isolates 7-day forecast.
  */
-export const analyzeWeeklySprayingWindows = (weatherData) => {
+export const analyzeWeeklySprayingWindows = (weatherData, profileId = 'herbicida', methodId = 'terrestre') => {
   if (!weatherData?.hourly || !weatherData?.daily) return null;
 
   const { hourly, daily } = weatherData;
@@ -487,6 +731,8 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       recentRainSum += (daily.precipitation_sum[d] || 0);
     }
   }
+
+  let allHoursList = [];
 
   // Iterate over days from today onward (or all if today not found)
   for (let d = 0; d < daily.time.length; d++) {
@@ -521,11 +767,12 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
         if (hum > maxHumOfDay) maxHumOfDay = hum;
         if (hum < minHumOfDay) minHumOfDay = hum;
 
-        const evalResult = evaluateHourlySpraying({ temp, hum, wind, gusts, rain });
+        const sprayEval = calculateSprayScore({ temp, hum, wind, gusts, rain }, profileId, methodId);
 
-        dayHours.push({
+        const hourEntry = {
           index: h,
           timeStr,
+          dateStr: dayDateStr,
           hourNum,
           temp,
           hum,
@@ -537,8 +784,13 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
           soilTemp,
           soilMoisture,
           et0,
-          eval: evalResult
-        });
+          eval: sprayEval,
+          score: sprayEval.score,
+          level: sprayEval.level
+        };
+
+        dayHours.push(hourEntry);
+        allHoursList.push(hourEntry);
       }
     }
 
@@ -553,13 +805,14 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     const windowsStrList = [];
     let currentWindow = [];
     workDayHours.forEach(item => {
-      if (item.eval.status === 'green' || item.eval.status === 'yellow') {
+      if (item.eval.status === 'green' || (item.eval.status === 'yellow' && item.eval.score >= 50)) {
         currentWindow.push(item);
       } else {
         if (currentWindow.length >= 2) {
           const startH = currentWindow[0].hourNum.toString().padStart(2, '0');
           const endH = (currentWindow[currentWindow.length - 1].hourNum + 1).toString().padStart(2, '0');
-          windowsStrList.push(`${startH}:00 a ${endH}:00 hs`);
+          const avgScore = Math.round(currentWindow.reduce((acc, x) => acc + x.eval.score, 0) / currentWindow.length);
+          windowsStrList.push(`${startH}:00 a ${endH}:00 hs (Score ~${avgScore})`);
         }
         currentWindow = [];
       }
@@ -567,7 +820,8 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     if (currentWindow.length >= 2) {
       const startH = currentWindow[0].hourNum.toString().padStart(2, '0');
       const endH = (currentWindow[currentWindow.length - 1].hourNum + 1).toString().padStart(2, '0');
-      windowsStrList.push(`${startH}:00 a ${endH}:00 hs`);
+      const avgScore = Math.round(currentWindow.reduce((acc, x) => acc + x.eval.score, 0) / currentWindow.length);
+      windowsStrList.push(`${startH}:00 a ${endH}:00 hs (Score ~${avgScore})`);
     }
 
     // Harvest windows (11:00 to 19:00, rain === 0, hum <= 65)
@@ -638,10 +892,15 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     if (extremeHeatHours.length > 0) nonOpReasons.push(`Calor > 30°C en ${extremeHeatHours.length} hs`);
     if (deltaTReds.length > 0) nonOpReasons.push(`Delta T crítico en ${deltaTReds.length} hs`);
 
+    // Day average score for diurnal hours
+    const avgDiurnalScore = workDayHours.length > 0 
+      ? Math.round(workDayHours.reduce((acc, h) => acc + h.eval.score, 0) / workDayHours.length) 
+      : 0;
+
     let overallStatus = 'green';
-    if (greenHours.length >= 6) {
+    if (greenHours.length >= 6 && avgDiurnalScore >= 70) {
       overallStatus = 'green';
-    } else if (greenHours.length + yellowHours.length >= 3) {
+    } else if (greenHours.length + yellowHours.length >= 3 && avgDiurnalScore >= 45) {
       overallStatus = 'yellow';
     } else {
       overallStatus = 'red';
@@ -662,6 +921,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
       greenCount: greenHours.length,
       yellowCount: yellowHours.length,
       redCount: redHours.length,
+      avgDiurnalScore,
       overallStatus,
       windows: windowsStrList.length > 0 ? windowsStrList : [],
       isOperational: windowsStrList.length > 0 && overallStatus !== 'red',
@@ -680,8 +940,59 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     });
   }
 
+  // Find Absolute Best Multi-hour Window of the entire week (Inspired by Viejo Viento "Mejor Ventana")
+  let bestWindowAcrossWeek = null;
+  let maxWindowScore = -1;
+
+  daysAnalysis.forEach((dayItem, dIdx) => {
+    // Only analyze diurnal & early evening hours 06:00 to 22:00
+    const candHours = dayItem.hours.filter(h => h.hourNum >= 6 && h.hourNum <= 22);
+    for (let i = 0; i < candHours.length - 2; i++) {
+      for (let len = 3; len <= 6 && (i + len) <= candHours.length; len++) {
+        const slice = candHours.slice(i, i + len);
+        const hasRed = slice.some(h => h.eval.status === 'red' || h.eval.score < 40);
+        if (hasRed) continue;
+
+        const sumScore = slice.reduce((a, b) => a + b.eval.score, 0);
+        const avgScore = Math.round(sumScore / len);
+
+        if (avgScore > maxWindowScore && avgScore >= 60) {
+          maxWindowScore = avgScore;
+          const startH = slice[0].hourNum.toString().padStart(2, '0');
+          const endH = (slice[slice.length - 1].hourNum + 1).toString().padStart(2, '0');
+          const daysNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          const dayDate = new Date(dayItem.dateStr + 'T00:00:00');
+          const dayName = daysNames[dayDate.getDay()];
+          const dateFormatted = `${dayDate.getDate()}/${dayDate.getMonth() + 1}`;
+
+          // Estimate confidence level: high if avg score >= 85 and wind <= 12, medium if score >= 70, otherwise moderate
+          let confidence = 'Media';
+          if (avgScore >= 85 && slice.every(s => s.gusts < 18)) {
+            confidence = 'Alta (Muy estable)';
+          } else if (avgScore < 70) {
+            confidence = 'Moderada (Vigilar ráfagas)';
+          } else {
+            confidence = 'Media';
+          }
+
+          bestWindowAcrossWeek = {
+            dayName,
+            dateFormatted,
+            dateStr: dayItem.dateStr,
+            timeRange: `${startH}:00 a ${endH}:00 hs`,
+            durationHours: len,
+            avgScore,
+            confidence,
+            sampleHour: slice[Math.floor(len / 2)]
+          };
+        }
+      }
+    }
+  });
+
   // Best day for Fumigar / Pulverizar
   const sortedFumigar = [...daysAnalysis].sort((a, b) => {
+    if (b.avgDiurnalScore !== a.avgDiurnalScore) return b.avgDiurnalScore - a.avgDiurnalScore;
     if (b.greenCount !== a.greenCount) return b.greenCount - a.greenCount;
     if (a.rainSum !== b.rainSum) return a.rainSum - b.rainSum;
     return a.maxWind - b.maxWind;
@@ -702,6 +1013,7 @@ export const analyzeWeeklySprayingWindows = (weatherData) => {
     bestDayOfWeek: sortedFumigar[0],
     bestDayFumigar: sortedFumigar[0],
     bestDayCosechar: sortedCosechar[0],
+    bestWindowAcrossWeek,
     today: daysAnalysis[0] || null,
     recentRainSum
   };

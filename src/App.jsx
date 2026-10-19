@@ -19,7 +19,8 @@ import {
   evaluateThermalInversion, evaluateSoilTrafficability, 
   evaluateFrostRisk, analyzeWeeklySprayingWindows,
   getSprayNozzleRecommendation, evaluateDewRisk,
-  evaluateHarvestConditions, evaluateRainfastness
+  evaluateHarvestConditions, evaluateRainfastness,
+  SPRAY_PROFILES, SPRAY_METHODS
 } from './utils/rules';
 
 function App() {
@@ -34,6 +35,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [plannerFilter, setPlannerFilter] = useState('todos');
   const [heroTask, setHeroTask] = useState('fumigar');
+
+  // Precision Spraying Profile & Method selection (Inspired by Viejo Viento)
+  const [sprayProfile, setSprayProfile] = useState('herbicida'); // 'herbicida' | 'fungicida' | 'insecticida' | 'foliar'
+  const [sprayMethod, setSprayMethod] = useState('terrestre');   // 'terrestre' | 'aereo'
+  const [copiedShare, setCopiedShare] = useState(false);
 
   // Interactive Calibrator / Calculator state for spraying
   const [calcTankVolume, setCalcTankVolume] = useState(3000); // Litros tanque
@@ -107,10 +113,11 @@ function App() {
   // Agricultural season
   const currentSeason = getSouthernHemisphereSeason();
 
-  // Perform weekly operational analysis
-  const weeklyAnalysis = weatherData ? analyzeWeeklySprayingWindows(weatherData) : null;
+  // Perform weekly operational analysis with selected chemical profile & application method
+  const weeklyAnalysis = weatherData ? analyzeWeeklySprayingWindows(weatherData, sprayProfile, sprayMethod) : null;
   const todayAnalysis = weeklyAnalysis?.today;
   const recentRainSum = weeklyAnalysis?.recentRainSum || 0;
+  const bestWindowAcrossWeek = weeklyAnalysis?.bestWindowAcrossWeek;
 
   // Compute total weekly operational hours & rainfall
   const totalWeeklyGreenHours = weeklyAnalysis?.days ? weeklyAnalysis.days.reduce((acc, d) => acc + d.greenCount, 0) : 0;
@@ -120,9 +127,9 @@ function App() {
   // Next 6 hours rainfall forecast array for rainfastness calculation
   const next6HoursRain = hourly?.precipitation ? hourly.precipitation.slice(0, 6) : [];
 
-  // Compute immediate status for supported tasks considering recent rainfall
-  const currentFumigarEval = current ? evaluateConditions('fumigar', current, recentRainSum) : null;
-  const currentPulverizarEval = current ? evaluateConditions('pulverizar', current, recentRainSum) : null;
+  // Compute immediate status for supported tasks considering recent rainfall and spray profile
+  const currentFumigarEval = current ? evaluateConditions('fumigar', current, recentRainSum, sprayProfile, sprayMethod) : null;
+  const currentPulverizarEval = current ? evaluateConditions('pulverizar', current, recentRainSum, sprayProfile, sprayMethod) : null;
   const currentHarvestEval = current ? evaluateConditions('cosechar', current, recentRainSum) : null;
 
   const bestDayFumigar = weeklyAnalysis?.bestDayFumigar;
@@ -416,6 +423,79 @@ function App() {
                       })}
                     </div>
                   </div>
+
+                  {/* Sub-selector: Perfil de Producto y Método de Aplicación (Inspirado en Viejo Viento) */}
+                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && (
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.6rem',
+                      padding: '0.55rem 0.75rem',
+                      borderRadius: '8px',
+                      background: 'rgba(15, 23, 42, 0.4)',
+                      border: '1px solid rgba(148, 163, 184, 0.12)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.58rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                          🎯 Producto:
+                        </span>
+                        {Object.values(SPRAY_PROFILES).map((prof) => {
+                          const isSel = sprayProfile === prof.id;
+                          return (
+                            <button
+                              key={prof.id}
+                              onClick={() => setSprayProfile(prof.id)}
+                              style={{
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                border: isSel ? '1px solid var(--green)' : '1px solid rgba(148,163,184,0.12)',
+                                background: isSel ? 'var(--green-bg)' : 'transparent',
+                                color: isSel ? 'var(--green)' : 'var(--text-secondary)',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={prof.desc}
+                            >
+                              {prof.name.split(' (')[0]}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.58rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                          🚜 Método:
+                        </span>
+                        {Object.values(SPRAY_METHODS).map((m) => {
+                          const isSel = sprayMethod === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => setSprayMethod(m.id)}
+                              style={{
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                border: isSel ? '1px solid var(--blue)' : '1px solid rgba(148,163,184,0.12)',
+                                background: isSel ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                                color: isSel ? 'var(--blue)' : 'var(--text-secondary)',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={m.desc}
+                            >
+                              {m.id === 'terrestre' ? 'Terrestre' : 'Aérea / Dron'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 3 Panorama Cards for Selected Task */}
@@ -472,42 +552,141 @@ function App() {
                   </div>
                 </div>
 
-                {/* Best Day Banner for Selected Task */}
+                {/* Best Day & Absolute Best Window Banner for Selected Task (Inspired by Viejo Viento) */}
                 {weeklyAnalysis && (
-                  <div className="best-day-banner-prominent" style={{ marginTop: '0.85rem', padding: '0.85rem 1rem' }}>
-                    <div className="best-day-icon-circle" style={{ width: '44px', height: '44px', minWidth: '44px' }}>
-                      <Award size={24} style={{ color: 'var(--yellow)' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ 
-                          fontSize: '0.52rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--yellow)',
-                          background: 'var(--yellow-bg)', padding: '0.12rem 0.5rem', borderRadius: '99px',
-                          border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
-                        }}>
-                          🏆 Mejor día de la semana para {heroTask === 'cosechar' ? 'Cosechar' : 'Fumigar / Pulverizar'}
-                        </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.85rem' }}>
+                    {/* Tarjeta 1: La Mejor Ventana Específica (Día + Horas + Score + Confianza) */}
+                    {(heroTask === 'fumigar' || heroTask === 'pulverizar') && bestWindowAcrossWeek && (
+                      <div style={{
+                        padding: '0.85rem 1rem',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(16, 185, 129, 0.08))',
+                        border: '1.5px solid rgba(34, 197, 94, 0.35)',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '10px',
+                            background: 'var(--green-bg)',
+                            border: '1px solid var(--green)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <span style={{ fontSize: '0.52rem', fontWeight: 800, color: 'var(--green)', textTransform: 'uppercase' }}>SCORE</span>
+                            <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-white)', lineHeight: 1 }}>{bestWindowAcrossWeek.avgScore}</span>
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              <span style={{
+                                fontSize: '0.52rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                color: 'var(--green)',
+                                background: 'rgba(34, 197, 94, 0.2)',
+                                padding: '0.12rem 0.45rem',
+                                borderRadius: '99px',
+                                letterSpacing: '0.04em'
+                              }}>
+                                🎯 MEJOR VENTANA DE LA SEMANA
+                              </span>
+                              <span style={{
+                                fontSize: '0.52rem',
+                                fontWeight: 700,
+                                color: 'var(--text-secondary)',
+                                background: 'var(--bg-elevated)',
+                                padding: '0.12rem 0.45rem',
+                                borderRadius: '99px'
+                              }}>
+                                Confianza: <strong style={{ color: 'var(--text-white)' }}>{bestWindowAcrossWeek.confidence}</strong>
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.2rem' }}>
+                              {bestWindowAcrossWeek.dayName} {bestWindowAcrossWeek.dateFormatted} · {bestWindowAcrossWeek.timeRange}
+                            </div>
+                            <div style={{ fontSize: '0.64rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                              Para {SPRAY_PROFILES[sprayProfile]?.name.split(' (')[0]} ({SPRAY_METHODS[sprayMethod]?.name}) · {bestWindowAcrossWeek.durationHours} horas continuas con óptimo balance térmico y eólico.
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botón compartir WhatsApp para contratista / aplicador */}
+                        <button
+                          onClick={() => {
+                            const text = `🚜 *VENTANA DE APLICACIÓN - CHECLIMA*\n📍 *Lote:* ${selectedCity.name}\n🎯 *Labor:* ${SPRAY_PROFILES[sprayProfile]?.name} (${SPRAY_METHODS[sprayMethod]?.name})\n⭐ *Mejor Ventana:* ${bestWindowAcrossWeek.dayName} ${bestWindowAcrossWeek.dateFormatted} (${bestWindowAcrossWeek.timeRange})\n📊 *Índice de Aptitud:* ${bestWindowAcrossWeek.avgScore}/100 (Confianza: ${bestWindowAcrossWeek.confidence})\n💨 *Viento aprox:* ${bestWindowAcrossWeek.sampleHour?.wind || 10} km/h (Ráfagas: ${bestWindowAcrossWeek.sampleHour?.gusts || 14} km/h)\n🌡️ *Temp:* ${bestWindowAcrossWeek.sampleHour?.temp || 20}°C | ΔT: ${bestWindowAcrossWeek.sampleHour?.eval?.deltaT || 4}°C\n📌 *Recomendación:* ${nozzleRec?.nozzleType || 'Ver marbete'}\n\nGenerado por CheClima (https://checlima.web.app)`;
+                            navigator.clipboard.writeText(text);
+                            setCopiedShare(true);
+                            setTimeout(() => setCopiedShare(false), 2500);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.4rem 0.75rem',
+                            borderRadius: '8px',
+                            background: copiedShare ? 'var(--green)' : 'rgba(34, 197, 94, 0.2)',
+                            color: copiedShare ? '#06260e' : 'var(--green)',
+                            border: '1px solid rgba(34, 197, 94, 0.4)',
+                            fontSize: '0.66rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title="Copiar reporte formateado para enviar por WhatsApp al aplicador"
+                        >
+                          {copiedShare ? <Check size={13} /> : <ArrowRight size={13} />}
+                          {copiedShare ? '¡Copiado para WhatsApp!' : 'Copiar reporte p/ WhatsApp'}
+                        </button>
                       </div>
-                      {(heroTask === 'fumigar' || heroTask === 'pulverizar') && bestDayFumigar && (
-                        <>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.25rem' }}>
-                            {getDayName(bestDayFumigar.dateStr, bestDayFumigar.dayIndex)} ({formatDateShort(bestDayFumigar.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDayFumigar.greenCount} hs óptimas</span>
-                          </div>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.1rem' }}>
-                            {bestDayFumigar.windows.length > 0 ? `Ventanas recomendadas: ${bestDayFumigar.windows.join(' y ')}.` : 'Condiciones con menor viento.'} Viento máx: {bestDayFumigar.maxWind} km/h • Ráfagas: {bestDayFumigar.maxGust} km/h
-                          </div>
-                        </>
-                      )}
-                      {heroTask === 'cosechar' && bestDayCosechar && (
-                        <>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.25rem' }}>
-                            {getDayName(bestDayCosechar.dateStr, bestDayCosechar.dayIndex)} ({formatDateShort(bestDayCosechar.dateStr)}) — <span style={{ color: bestDayCosechar.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDayCosechar.harvestEval.label}</span>
-                          </div>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.1rem' }}>
-                            {bestDayCosechar.harvestEval.reason} • Lluvia: {bestDayCosechar.rainSum} mm • Viento máx: {bestDayCosechar.maxWind} km/h
-                          </div>
-                        </>
-                      )}
+                    )}
+
+                    {/* Tarjeta 2: Resumen del Mejor Día General */}
+                    <div className="best-day-banner-prominent" style={{ padding: '0.75rem 1rem' }}>
+                      <div className="best-day-icon-circle" style={{ width: '40px', height: '40px', minWidth: '40px' }}>
+                        <Award size={22} style={{ color: 'var(--yellow)' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <span style={{ 
+                            fontSize: '0.52rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--yellow)',
+                            background: 'var(--yellow-bg)', padding: '0.12rem 0.5rem', borderRadius: '99px',
+                            border: '1px solid rgba(245,158,11,0.3)', letterSpacing: '0.04em'
+                          }}>
+                            🏆 Día más favorable para {heroTask === 'cosechar' ? 'Cosechar' : 'Fumigar / Pulverizar'}
+                          </span>
+                        </div>
+                        {(heroTask === 'fumigar' || heroTask === 'pulverizar') && bestDayFumigar && (
+                          <>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.2rem' }}>
+                              {getDayName(bestDayFumigar.dateStr, bestDayFumigar.dayIndex)} ({formatDateShort(bestDayFumigar.dateStr)}) — <span style={{ color: 'var(--green)' }}>{bestDayFumigar.greenCount} hs diurnas óptimas (Score prom: {bestDayFumigar.avgDiurnalScore}/100)</span>
+                            </div>
+                            <div style={{ fontSize: '0.64rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.1rem' }}>
+                              {bestDayFumigar.windows.length > 0 ? `Ventanas: ${bestDayFumigar.windows.join(' y ')}.` : 'Condiciones con menor viento.'} Viento máx: {bestDayFumigar.maxWind} km/h • Ráfagas: {bestDayFumigar.maxGust} km/h
+                            </div>
+                          </>
+                        )}
+                        {heroTask === 'cosechar' && bestDayCosechar && (
+                          <>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--text-white)', marginTop: '0.2rem' }}>
+                              {getDayName(bestDayCosechar.dateStr, bestDayCosechar.dayIndex)} ({formatDateShort(bestDayCosechar.dateStr)}) — <span style={{ color: bestDayCosechar.harvestEval.status === 'green' ? 'var(--green)' : 'var(--yellow)' }}>{bestDayCosechar.harvestEval.label}</span>
+                            </div>
+                            <div style={{ fontSize: '0.64rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.1rem' }}>
+                              {bestDayCosechar.harvestEval.reason} • Lluvia: {bestDayCosechar.rainSum} mm • Viento máx: {bestDayCosechar.maxWind} km/h
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1113,10 +1292,47 @@ function App() {
                               <Wind size={11} style={{ color: 'var(--green)', flexShrink: 0 }} />
                               {plannerFilter === 'pulverizar' ? 'Pulverización' : 'Fumigación'}
                             </span>
-                            <span className={`status-badge badge-${dayInfo.overallStatus}`} style={{ fontSize: '0.52rem', padding: '0.12rem 0.4rem' }}>
-                              {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <span style={{
+                                fontSize: '0.52rem',
+                                padding: '0.1rem 0.35rem',
+                                borderRadius: '4px',
+                                background: dayInfo.avgDiurnalScore >= 70 ? 'rgba(34, 197, 94, 0.2)' : dayInfo.avgDiurnalScore >= 45 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                color: dayInfo.avgDiurnalScore >= 70 ? 'var(--green)' : dayInfo.avgDiurnalScore >= 45 ? 'var(--yellow)' : 'var(--red)',
+                                fontWeight: 800
+                              }}>
+                                {dayInfo.avgDiurnalScore} pts
+                              </span>
+                              <span className={`status-badge badge-${dayInfo.overallStatus}`} style={{ fontSize: '0.52rem', padding: '0.12rem 0.4rem' }}>
+                                {dayInfo.overallStatus === 'green' ? 'ÓPTIMO' : dayInfo.overallStatus === 'yellow' ? 'PRECAUCIÓN' : 'NO APTO'}
+                              </span>
+                            </div>
                           </div>
+
+                          {/* 24-Hour Mini Color Strip (Estilo Viejo Viento hora por hora) */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(24, 1fr)',
+                            gap: '1px',
+                            height: '8px',
+                            borderRadius: '3px',
+                            overflow: 'hidden',
+                            margin: '0.25rem 0',
+                            background: 'rgba(148, 163, 184, 0.1)'
+                          }} title="Aptitud hora por hora (00:00 a 23:00 hs)">
+                            {dayInfo.hours.map((hItem, hIdx) => {
+                              const s = hItem.eval.score;
+                              const bg = s >= 80 ? '#22c55e' : s >= 65 ? '#86efac' : s >= 50 ? '#eab308' : s >= 35 ? '#f97316' : '#ef4444';
+                              return (
+                                <div
+                                  key={hIdx}
+                                  style={{ background: bg, height: '100%' }}
+                                  title={`${hItem.hourNum}:00 hs · Score ${s}/100 (${hItem.eval.label}) · Viento ${hItem.wind} km/h · ΔT ${hItem.eval.deltaT}°C`}
+                                />
+                              );
+                            })}
+                          </div>
+
                           {dayInfo.windows.length > 0 ? (
                             <div style={{ 
                               fontSize: '0.58rem', fontWeight: 800, color: 'var(--green)', 

@@ -59,6 +59,121 @@ export const fetchWeather = async (lat, lon) => {
   }
 };
 
+/**
+ * Consulta comparativa multi-modelo (ECMWF, GFS, ICON) para evaluar consenso agronómico y fiabilidad.
+ */
+export const fetchMultiModelEnsemble = async (lat, lon) => {
+  const dailyParams = [
+    'temperature_2m_max',
+    'temperature_2m_min',
+    'precipitation_sum',
+    'precipitation_probability_max',
+    'wind_speed_10m_max'
+  ].join(',');
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=${dailyParams}&forecast_days=7&timezone=America%2FArgentina%2FBuenos_Aires&models=ecmwf_ifs025,gfs_seamless,icon_seamless`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch multi-model ensemble');
+    const data = await response.json();
+    const d = data.daily;
+    if (!d || !d.time) return null;
+
+    // Model definitions with technical meta
+    const modelsMeta = [
+      { id: 'ecmwf', code: 'ecmwf_ifs025', name: 'ECMWF IFS', origin: 'Unión Europea (9-11 km)', flag: '🇪🇺', desc: 'Referencia global número 1 en precisión a mediano plazo' },
+      { id: 'gfs', code: 'gfs_seamless', name: 'GFS Seamless', origin: 'NOAA (Estados Unidos, 13 km)', flag: '🇺🇸', desc: 'Modelo insignia norteamericano, excelente para avance de frentes fríos' },
+      { id: 'icon', code: 'icon_seamless', name: 'ICON Global', origin: 'DWD (Alemania, 13 km)', flag: '🇩🇪', desc: 'Gran resolución dinámica para precipitaciones convectivas y ráfagas' }
+    ];
+
+    // Compute day by day agreement
+    const daysComparison = d.time.map((dateStr, idx) => {
+      const ecmwfRain = d.precipitation_sum_ecmwf_ifs025?.[idx] ?? 0;
+      const gfsRain = d.precipitation_sum_gfs_seamless?.[idx] ?? 0;
+      const iconRain = d.precipitation_sum_icon_seamless?.[idx] ?? 0;
+
+      const ecmwfTemp = d.temperature_2m_max_ecmwf_ifs025?.[idx] ?? 0;
+      const gfsTemp = d.temperature_2m_max_gfs_seamless?.[idx] ?? 0;
+      const iconTemp = d.temperature_2m_max_icon_seamless?.[idx] ?? 0;
+
+      const ecmwfWind = d.wind_speed_10m_max_ecmwf_ifs025?.[idx] ?? 0;
+      const gfsWind = d.wind_speed_10m_max_gfs_seamless?.[idx] ?? 0;
+      const iconWind = d.wind_speed_10m_max_icon_seamless?.[idx] ?? 0;
+
+      const ecmwfProb = d.precipitation_probability_max_ecmwf_ifs025?.[idx] ?? 0;
+      const gfsProb = d.precipitation_probability_max_gfs_seamless?.[idx] ?? 0;
+      const iconProb = d.precipitation_probability_max_icon_seamless?.[idx] ?? 0;
+
+      const rains = [ecmwfRain, gfsRain, iconRain];
+      const rainAgreementCount = rains.filter(r => r >= 1.0).length; // Modelos que proyectan lluvia >= 1mm
+      const avgRain = +(rains.reduce((a, b) => a + b, 0) / 3).toFixed(1);
+      const avgWind = Math.round((ecmwfWind + gfsWind + iconWind) / 3);
+      const avgTemp = +( (ecmwfTemp + gfsTemp + iconTemp) / 3 ).toFixed(1);
+
+      // Consenso y fiabilidad agronómica
+      let reliabilityScore = 95; // % fiabilidad
+      let reliabilityLevel = 'ALTA';
+      let consensusStatus = 'agreement'; // 'agreement' | 'moderate' | 'divergence'
+      let message = 'Consenso unánime entre los 3 centros mundiales.';
+
+      const maxRainDiff = Math.max(...rains) - Math.min(...rains);
+      const tempDiff = Math.max(ecmwfTemp, gfsTemp, iconTemp) - Math.min(ecmwfTemp, gfsTemp, iconTemp);
+
+      if (rainAgreementCount === 3) {
+        reliabilityLevel = 'ALTA COINCIDENCIA DE LLUVIA';
+        consensusStatus = 'agreement';
+        message = `Los 3 modelos proyectan precipitaciones (Promedio: ${avgRain} mm). Alta certeza de lluvia.`;
+        reliabilityScore = maxRainDiff > 15 ? 75 : 92;
+      } else if (rainAgreementCount === 0) {
+        reliabilityLevel = 'ALTA FIABILIDAD (SECO)';
+        consensusStatus = 'agreement';
+        message = 'Los 3 modelos descartan lluvias significativas. Condiciones estables y previsibles.';
+        reliabilityScore = 95;
+      } else if (rainAgreementCount === 2) {
+        reliabilityLevel = 'MODERADA (Divergencia de Lluvia)';
+        consensusStatus = 'moderate';
+        const dissenting = ecmwfRain < 1.0 ? 'ECMWF' : gfsRain < 1.0 ? 'GFS' : 'ICON';
+        message = `2 de 3 modelos ven lluvia; ${dissenting} no prevé acumulados mayores. Monitorear evolución.`;
+        reliabilityScore = 68;
+      } else {
+        reliabilityLevel = 'INCERTIDUMBRE LOCAL';
+        consensusStatus = 'divergence';
+        const singleModel = ecmwfRain >= 1.0 ? 'ECMWF' : gfsRain >= 1.0 ? 'GFS' : 'ICON';
+        message = `Solo ${singleModel} proyecta precipitación aislada. Baja probabilidad general de lluvia generalizada.`;
+        reliabilityScore = 55;
+      }
+
+      // Penalizar fiabilidad si hay mucha dispersión térmica o de viento
+      if (tempDiff > 5) reliabilityScore = Math.max(45, reliabilityScore - 12);
+
+      return {
+        dateStr,
+        avgRain,
+        avgWind,
+        avgTemp,
+        reliabilityScore,
+        reliabilityLevel,
+        consensusStatus,
+        message,
+        models: {
+          ecmwf: { rain: ecmwfRain, tempMax: ecmwfTemp, windMax: ecmwfWind, prob: ecmwfProb },
+          gfs: { rain: gfsRain, tempMax: gfsTemp, windMax: gfsWind, prob: gfsProb },
+          icon: { rain: iconRain, tempMax: iconTemp, windMax: iconWind, prob: iconProb }
+        }
+      };
+    });
+
+    return {
+      modelsMeta,
+      days: daysComparison
+    };
+  } catch (error) {
+    console.error("Error fetching multi-model ensemble", error);
+    return null;
+  }
+};
+
 export const searchCities = async (query) => {
   if (!query || query.trim().length < 2) return [];
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=es&format=json`;

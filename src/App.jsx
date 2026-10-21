@@ -7,10 +7,10 @@ import {
   Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles,
   Activity, Zap, Eye, Radio, Filter, Target, Crosshair,
   Layers, CloudDrizzle, ChevronRight, Calculator, Check, ArrowRight,
-  HelpCircle, Compass as CompassIcon, History
+  HelpCircle, Compass as CompassIcon, History, Globe, Cpu, GitCompare, RefreshCw
 } from 'lucide-react';
 import { 
-  fetchWeather, searchCities, POPULAR_CITIES, DEFAULT_CITY,
+  fetchWeather, fetchMultiModelEnsemble, searchCities, POPULAR_CITIES, DEFAULT_CITY,
   getWindDirectionName, getWeatherDescription,
   formatTimeHHMM, calculateDaylightDuration, getSouthernHemisphereSeason
 } from './utils/weather';
@@ -32,6 +32,8 @@ function App() {
   const [showDropdown, setShowDropdown] = useState(false);
   
   const [weatherData, setWeatherData] = useState(null);
+  const [ensembleData, setEnsembleData] = useState(null);
+  const [ensembleLoading, setEnsembleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [plannerFilter, setPlannerFilter] = useState('todos');
   const [heroTask, setHeroTask] = useState('fumigar');
@@ -57,15 +59,23 @@ function App() {
     }
   }, [isDarkMode]);
 
-  // Fetch weather when selected city changes
+  // Fetch weather and multi-model ensemble when selected city changes
   useEffect(() => {
     let isMounted = true;
     const loadWeather = async () => {
       setLoading(true);
-      const data = await fetchWeather(selectedCity.lat, selectedCity.lon);
+      setEnsembleLoading(true);
+
+      const [data, ensData] = await Promise.all([
+        fetchWeather(selectedCity.lat, selectedCity.lon),
+        fetchMultiModelEnsemble(selectedCity.lat, selectedCity.lon)
+      ]);
+
       if (isMounted) {
         setWeatherData(data);
+        setEnsembleData(ensData);
         setLoading(false);
+        setEnsembleLoading(false);
       }
     };
     loadWeather();
@@ -434,8 +444,8 @@ function App() {
                       gap: '0.6rem',
                       padding: '0.55rem 0.75rem',
                       borderRadius: '8px',
-                      background: 'rgba(15, 23, 42, 0.4)',
-                      border: '1px solid rgba(148, 163, 184, 0.12)'
+                      background: 'transparent',
+                      border: '1px solid rgba(148, 163, 184, 0.08)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.58rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
@@ -1309,28 +1319,53 @@ function App() {
                             </div>
                           </div>
 
-                          {/* 24-Hour Mini Color Strip (Estilo Viejo Viento hora por hora) */}
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(24, 1fr)',
-                            gap: '1px',
-                            height: '8px',
-                            borderRadius: '3px',
-                            overflow: 'hidden',
-                            margin: '0.25rem 0',
-                            background: 'rgba(148, 163, 184, 0.1)'
-                          }} title="Aptitud hora por hora (00:00 a 23:00 hs)">
-                            {dayInfo.hours.map((hItem, hIdx) => {
-                              const s = hItem.eval.score;
-                              const bg = s >= 80 ? '#22c55e' : s >= 65 ? '#86efac' : s >= 50 ? '#eab308' : s >= 35 ? '#f97316' : '#ef4444';
-                              return (
-                                <div
-                                  key={hIdx}
-                                  style={{ background: bg, height: '100%' }}
-                                  title={`${hItem.hourNum}:00 hs · Score ${s}/100 (${hItem.eval.label}) · Viento ${hItem.wind} km/h · ΔT ${hItem.eval.deltaT}°C`}
-                                />
-                              );
-                            })}
+                          {/* 24-Hour Mini Color Strip con marcas de horario legibles */}
+                          <div style={{ margin: '0.35rem 0 0.25rem 0' }}>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(24, 1fr)',
+                              gap: '1.5px',
+                              height: '11px',
+                              borderRadius: '4px',
+                              overflow: 'hidden',
+                              background: 'rgba(148, 163, 184, 0.08)',
+                              padding: '1px'
+                            }} title="Semáforo de aptitud hora por hora (00:00 a 23:00 hs). Pasá el cursor sobre cada cuadradito para ver hora exacta, viento y Delta T.">
+                              {dayInfo.hours.map((hItem, hIdx) => {
+                                const s = hItem.eval.score;
+                                const bg = s >= 80 ? '#22c55e' : s >= 65 ? '#86efac' : s >= 50 ? '#eab308' : s >= 35 ? '#f97316' : '#ef4444';
+                                return (
+                                  <div
+                                    key={hIdx}
+                                    style={{ 
+                                      background: bg, 
+                                      height: '100%', 
+                                      borderRadius: '1px',
+                                      cursor: 'help'
+                                    }}
+                                    title={`🕒 ${String(hItem.hourNum).padStart(2, '0')}:00 hs · Score: ${s}/100 (${hItem.eval.label})\n💨 Viento: ${hItem.wind} km/h | Ráfagas: ${hItem.gusts || hItem.wind} km/h\n🌡️ Temp: ${Math.round(hItem.temp)}°C | ΔT: ${hItem.eval.deltaT}°C`}
+                                  />
+                                );
+                              })}
+                            </div>
+                            {/* Regla horaria de referencia */}
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              fontSize: '0.52rem',
+                              color: 'var(--text-muted)',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 600,
+                              marginTop: '0.15rem',
+                              padding: '0 1px',
+                              lineHeight: 1
+                            }}>
+                              <span>0h</span>
+                              <span>6h</span>
+                              <span>12h</span>
+                              <span>18h</span>
+                              <span>23h</span>
+                            </div>
                           </div>
 
                           {dayInfo.windows.length > 0 ? (
@@ -1471,6 +1506,198 @@ function App() {
                 </ul>
               </div>
             </div>
+          </div>
+
+          {/* ═══ 5. ENSAMBLE MULTI-MODELO Y MATRIZ DE CONSENSO (ALTA FIABILIDAD SAAS) ═══ */}
+          <div className="glass-panel ensemble-panel mb-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.1rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.65rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.2rem' }}>
+                    <span style={{
+                      fontSize: '0.58rem',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '99px',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      color: 'var(--blue)',
+                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                      letterSpacing: '0.04em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      <Cpu size={11} /> MATRIZ DE CONSENSO MULTI-MODELO
+                    </span>
+                    <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                      ECMWF (UE) · GFS (EE.UU.) · ICON (ALEMANIA)
+                    </span>
+                  </div>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1.08rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                    <GitCompare size={20} style={{ color: 'var(--blue)' }} />
+                    Comparador de Modelos y Nivel de Certeza Agronómica
+                  </h2>
+                  <p style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', marginTop: '0.2rem', maxWidth: '780px', lineHeight: 1.5 }}>
+                    Cruza en tiempo real los 3 centros de predicción meteorológica más respetados del mundo. Cuanto mayor sea el acuerdo entre modelos, mayor es la seguridad operativa para planificar labores, comprar insumos o sembrar.
+                  </p>
+                </div>
+
+                {/* Model tags */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                  <div className="model-source-chip" title="European Centre for Medium-Range Weather Forecasts (0.25°)">
+                    <span>🇪🇺</span> <strong>ECMWF IFS</strong>
+                  </div>
+                  <div className="model-source-chip" title="National Oceanic and Atmospheric Administration (NOAA)">
+                    <span>🇺🇸</span> <strong>GFS Seamless</strong>
+                  </div>
+                  <div className="model-source-chip" title="Deutscher Wetterdienst (DWD Alemania)">
+                    <span>🇩🇪</span> <strong>ICON Global</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid of days with multi-model comparison */}
+            {ensembleLoading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
+                <RefreshCw size={16} className="animate-spin" style={{ color: 'var(--blue)' }} /> Sincronizando modelos globales para {selectedCity.name}...
+              </div>
+            ) : ensembleData?.days ? (
+              <div className="ensemble-cards-scroll">
+                {ensembleData.days.map((dItem, dIdx) => {
+                  const dayName = getDayName(dItem.dateStr, dIdx);
+                  const dateShort = formatDateShort(dItem.dateStr);
+                  const isToday = dIdx === 0;
+
+                  const isHighAgreement = dItem.consensusStatus === 'agreement';
+                  const isModerate = dItem.consensusStatus === 'moderate';
+                  const badgeColor = isHighAgreement ? 'var(--green)' : isModerate ? 'var(--yellow)' : 'var(--red)';
+                  const badgeBg = isHighAgreement ? 'rgba(34, 197, 94, 0.12)' : isModerate ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+                  const badgeBorder = isHighAgreement ? 'rgba(34, 197, 94, 0.3)' : isModerate ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+
+                  return (
+                    <div 
+                      key={dIdx} 
+                      className={`ensemble-day-card ${isToday ? 'today-highlight' : ''}`}
+                    >
+                      {/* Day Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(148, 163, 184, 0.08)', paddingBottom: '0.4rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.85rem' }}>{dayName}</span>
+                            <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700 }}>{dateShort}</span>
+                            {isToday && <span className="today-badge" style={{ fontSize: '0.48rem', padding: '0.08rem 0.3rem' }}>HOY</span>}
+                          </div>
+                        </div>
+
+                        {/* Agreement Tag */}
+                        <span style={{
+                          fontSize: '0.52rem',
+                          fontWeight: 800,
+                          padding: '0.15rem 0.4rem',
+                          borderRadius: '6px',
+                          background: badgeBg,
+                          color: badgeColor,
+                          border: `1px solid ${badgeBorder}`,
+                          letterSpacing: '0.02em',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {dItem.reliabilityScore}% Fiabilidad
+                        </span>
+                      </div>
+
+                      {/* Reliability progress bar */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.52rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.1rem' }}>
+                          <span>Certeza Predictiva</span>
+                          <span style={{ color: badgeColor }}>{dItem.reliabilityLevel}</span>
+                        </div>
+                        <div className="reliability-meter-bg">
+                          <div 
+                            className="reliability-meter-fill" 
+                            style={{ 
+                              width: `${dItem.reliabilityScore}%`,
+                              background: isHighAgreement ? 'linear-gradient(90deg, #10b981, #22c55e)' : isModerate ? 'linear-gradient(90deg, #f59e0b, #eab308)' : 'linear-gradient(90deg, #ef4444, #f97316)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Side by side Model Comparison Rows */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.1rem' }}>
+                        {/* ECMWF */}
+                        <div className="ensemble-model-row" title="Modelo Europeo IFS (Centro ECMWF)">
+                          <span className="ensemble-model-badge">
+                            <span className="model-flag">🇪🇺</span> ECMWF
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-mono)' }}>
+                            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{Math.round(dItem.models.ecmwf.tempMax)}°</span>
+                            <span style={{ 
+                              color: dItem.models.ecmwf.rain > 0 ? 'var(--blue)' : 'var(--text-muted)',
+                              fontWeight: dItem.models.ecmwf.rain > 0 ? 800 : 500
+                            }}>
+                              {dItem.models.ecmwf.rain > 0 ? `${dItem.models.ecmwf.rain} mm` : '0 mm'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* GFS */}
+                        <div className="ensemble-model-row" title="Modelo Norteamericano GFS (NOAA)">
+                          <span className="ensemble-model-badge">
+                            <span className="model-flag">🇺🇸</span> GFS
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-mono)' }}>
+                            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{Math.round(dItem.models.gfs.tempMax)}°</span>
+                            <span style={{ 
+                              color: dItem.models.gfs.rain > 0 ? 'var(--blue)' : 'var(--text-muted)',
+                              fontWeight: dItem.models.gfs.rain > 0 ? 800 : 500
+                            }}>
+                              {dItem.models.gfs.rain > 0 ? `${dItem.models.gfs.rain} mm` : '0 mm'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* ICON */}
+                        <div className="ensemble-model-row" title="Modelo Alemán ICON (Servicio DWD)">
+                          <span className="ensemble-model-badge">
+                            <span className="model-flag">🇩🇪</span> ICON
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-mono)' }}>
+                            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{Math.round(dItem.models.icon.tempMax)}°</span>
+                            <span style={{ 
+                              color: dItem.models.icon.rain > 0 ? 'var(--blue)' : 'var(--text-muted)',
+                              fontWeight: dItem.models.icon.rain > 0 ? 800 : 500
+                            }}>
+                              {dItem.models.icon.rain > 0 ? `${dItem.models.icon.rain} mm` : '0 mm'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Agronomic Conclusion Message */}
+                      <div style={{
+                        marginTop: 'auto',
+                        padding: '0.35rem 0.45rem',
+                        borderRadius: '6px',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        border: '1px solid rgba(148, 163, 184, 0.08)',
+                        fontSize: '0.56rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: 1.35
+                      }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>Dictamen: </strong>
+                        {dItem.message}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                Datos multi-modelo no disponibles para esta localidad.
+              </div>
+            )}
           </div>
 
           {/* ═══ 5. CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO ═══ */}

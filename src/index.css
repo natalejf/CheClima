@@ -318,16 +318,16 @@ body::after {
   }
 
   .windy-desktop-card {
-    height: 95vh;
+    height: 100%;
+    min-height: 520px;
     display: flex;
     flex-direction: column;
-    min-height: 560px;
   }
 
   .windy-desktop-card .iframe-container {
     flex: 1;
     height: 100%;
-    min-height: 0;
+    min-height: 440px;
     padding-bottom: 0;
   }
 }
@@ -339,7 +339,8 @@ body::after {
   }
 
   .windy-desktop-card {
-    height: 90vh;
+    height: 100%;
+    min-height: 520px;
   }
 }
 

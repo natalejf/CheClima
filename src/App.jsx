@@ -36,6 +36,7 @@ function App() {
   const [ensembleLoading, setEnsembleLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [plannerFilter, setPlannerFilter] = useState('todos');
+  const [showEnsembleDetails, setShowEnsembleDetails] = useState(false);
   const [heroTask, setHeroTask] = useState('fumigar');
 
   // Precision Spraying Profile & Method selection (Inspired by Viejo Viento)
@@ -702,11 +703,11 @@ function App() {
                 )}
               </div>
 
-              {/* ═══ CLIMA ACTUAL EN LOTE (CONDICIONES CLAVE) ═══ */}
+              {/* ═══ CLIMA ACTUAL EN LA CIUDAD (CONDICIONES CLAVE) ═══ */}
               <div className="glass-panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.92rem' }}>
-                    <Thermometer size={17} style={{ color: 'var(--green)' }} /> Clima Actual en Lote
+                    <Thermometer size={17} style={{ color: 'var(--green)' }} /> Clima Actual en la Ciudad
                   </h2>
                   <span className="weather-badge">
                     {getWeatherDescription(current.weather_code)}
@@ -827,6 +828,35 @@ function App() {
                       </div>
                       <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                         {current.surface_pressure ? (current.surface_pressure >= 1013 ? 'Alta — estable' : current.surface_pressure >= 995 ? 'Normal' : 'Baja — inestable') : ''}
+                      </span>
+                    </div>
+
+                    {/* Cobertura Nubosa */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <CloudSun size={15} style={{ color: 'var(--blue)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Nubosidad</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                        {current.cloud_cover !== undefined ? `${current.cloud_cover}%` : '--'}
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {current.cloud_cover !== undefined ? (current.cloud_cover > 80 ? 'Cielo cubierto' : current.cloud_cover > 40 ? 'Parcial nublado' : 'Cielo despejado') : ''}
+                      </span>
+                    </div>
+
+                    {/* Evapotranspiración FAO ET0 */}
+                    <div className="metric-box">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                        <Activity size={15} style={{ color: 'var(--green)' }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Demanda Hídrica (ET₀)</span>
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-white)' }}>
+                        {daily?.et0_fao_evapotranspiration?.[3] !== undefined ? `${daily.et0_fao_evapotranspiration[3].toFixed(1)}` : '--'}
+                        <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)' }}> mm/d</span>
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        Pérdida por evaporación hoy
                       </span>
                     </div>
                   </div>
@@ -1219,6 +1249,30 @@ function App() {
                     </button>
                   );
                 })}
+
+                {/* Toggle Dictamen Multi-Modelo */}
+                <button
+                  onClick={() => setShowEnsembleDetails(!showEnsembleDetails)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '99px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    border: showEnsembleDetails ? '1px solid var(--blue)' : '1px solid rgba(148,163,184,0.15)',
+                    background: showEnsembleDetails ? 'var(--blue-bg)' : 'var(--bg-elevated)',
+                    color: showEnsembleDetails ? 'var(--blue)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    marginLeft: 'auto'
+                  }}
+                  title="Ver dictamen detallado de consenso entre ECMWF, GFS e ICON para cada día"
+                >
+                  <Cpu size={13} style={{ color: showEnsembleDetails ? 'var(--blue)' : 'var(--text-muted)' }} />
+                  {showEnsembleDetails ? 'Ocultar Dictamen Modelos' : 'Ver Dictamen Modelos'}
+                </button>
               </div>
 
               {/* Quick Summary Banner for Task Filter */}
@@ -1433,6 +1487,96 @@ function App() {
                       </div>
                     </div>
 
+                    {/* Consenso Multi-Modelo Integrado (ECMWF, GFS, ICON) */}
+                    {(() => {
+                      const ensDay = ensembleData?.days?.[idx];
+                      if (!ensDay) return null;
+                      const isHigh = ensDay.consensusStatus === 'agreement';
+                      const isMod = ensDay.consensusStatus === 'moderate';
+                      const badgeClr = isHigh ? 'var(--green)' : isMod ? 'var(--yellow)' : 'var(--red)';
+                      const badgeBg = isHigh ? 'rgba(34, 197, 94, 0.12)' : isMod ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+                      const badgeBrd = isHigh ? 'rgba(34, 197, 94, 0.3)' : isMod ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+
+                      return (
+                        <div style={{ marginTop: '0.5rem', paddingTop: '0.45rem', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                            <span style={{ fontSize: '0.52rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <Cpu size={10} style={{ color: 'var(--blue)' }} /> Modelos
+                            </span>
+                            <span style={{
+                              fontSize: '0.5rem',
+                              fontWeight: 800,
+                              padding: '0.1rem 0.35rem',
+                              borderRadius: '4px',
+                              background: badgeBg,
+                              color: badgeClr,
+                              border: `1px solid ${badgeBrd}`
+                            }}>
+                              {ensDay.reliabilityScore}% Fiable
+                            </span>
+                          </div>
+
+                          {/* Comparador de 3 modelos */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            {/* ECMWF */}
+                            <div className="ensemble-model-row" style={{ padding: '0.18rem 0.35rem' }} title="Modelo Europeo IFS (Centro ECMWF)">
+                              <span className="ensemble-model-badge" style={{ fontSize: '0.58rem' }}>
+                                <span className="model-flag" style={{ fontSize: '0.65rem' }}>🇪🇺</span> ECMWF
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontFamily: 'var(--font-mono)', fontSize: '0.58rem' }}>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{Math.round(ensDay.models.ecmwf.tempMax)}°</span>
+                                <span style={{ color: ensDay.models.ecmwf.rain > 0 ? 'var(--blue)' : 'var(--text-muted)', fontWeight: ensDay.models.ecmwf.rain > 0 ? 800 : 500 }}>
+                                  {ensDay.models.ecmwf.rain > 0 ? `${ensDay.models.ecmwf.rain} mm` : '0 mm'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* GFS */}
+                            <div className="ensemble-model-row" style={{ padding: '0.18rem 0.35rem' }} title="Modelo Norteamericano GFS (NOAA)">
+                              <span className="ensemble-model-badge" style={{ fontSize: '0.58rem' }}>
+                                <span className="model-flag" style={{ fontSize: '0.65rem' }}>🇺🇸</span> GFS
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontFamily: 'var(--font-mono)', fontSize: '0.58rem' }}>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{Math.round(ensDay.models.gfs.tempMax)}°</span>
+                                <span style={{ color: ensDay.models.gfs.rain > 0 ? 'var(--blue)' : 'var(--text-muted)', fontWeight: ensDay.models.gfs.rain > 0 ? 800 : 500 }}>
+                                  {ensDay.models.gfs.rain > 0 ? `${ensDay.models.gfs.rain} mm` : '0 mm'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* ICON */}
+                            <div className="ensemble-model-row" style={{ padding: '0.18rem 0.35rem' }} title="Modelo Alemán ICON (Servicio DWD)">
+                              <span className="ensemble-model-badge" style={{ fontSize: '0.58rem' }}>
+                                <span className="model-flag" style={{ fontSize: '0.65rem' }}>🇩🇪</span> ICON
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontFamily: 'var(--font-mono)', fontSize: '0.58rem' }}>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{Math.round(ensDay.models.icon.tempMax)}°</span>
+                                <span style={{ color: ensDay.models.icon.rain > 0 ? 'var(--blue)' : 'var(--text-muted)', fontWeight: ensDay.models.icon.rain > 0 ? 800 : 500 }}>
+                                  {ensDay.models.icon.rain > 0 ? `${ensDay.models.icon.rain} mm` : '0 mm'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Mensaje de consenso / dictamen */}
+                          {showEnsembleDetails && (
+                            <div className="dictamen-box" style={{
+                              marginTop: '0.3rem',
+                              padding: '0.25rem 0.35rem',
+                              borderRadius: '5px',
+                              background: 'var(--bg-elevated)',
+                              border: '1px solid rgba(148, 163, 184, 0.1)',
+                              fontSize: '0.53rem',
+                              color: 'var(--text-secondary)',
+                              lineHeight: 1.3
+                            }}>
+                              <strong style={{ color: 'var(--text-primary)' }}>Dictamen: </strong>{ensDay.message}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Footer */}
                     <div style={{ marginTop: '0.5rem', paddingTop: '0.35rem', borderTop: '1px solid rgba(148,163,184,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.58rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -1506,198 +1650,6 @@ function App() {
                 </ul>
               </div>
             </div>
-          </div>
-
-          {/* ═══ 5. ENSAMBLE MULTI-MODELO Y MATRIZ DE CONSENSO (ALTA FIABILIDAD SAAS) ═══ */}
-          <div className="glass-panel ensemble-panel mb-6">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.1rem' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.65rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.2rem' }}>
-                    <span style={{
-                      fontSize: '0.58rem',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      padding: '0.2rem 0.55rem',
-                      borderRadius: '99px',
-                      background: 'rgba(59, 130, 246, 0.2)',
-                      color: 'var(--blue)',
-                      border: '1px solid rgba(59, 130, 246, 0.35)',
-                      letterSpacing: '0.04em',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
-                      <Cpu size={11} /> MATRIZ DE CONSENSO MULTI-MODELO
-                    </span>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                      ECMWF (UE) · GFS (EE.UU.) · ICON (ALEMANIA)
-                    </span>
-                  </div>
-                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1.08rem', fontWeight: 900, color: 'var(--text-white)' }}>
-                    <GitCompare size={20} style={{ color: 'var(--blue)' }} />
-                    Comparador de Modelos y Nivel de Certeza Agronómica
-                  </h2>
-                  <p style={{ fontSize: '0.66rem', color: 'var(--text-secondary)', marginTop: '0.2rem', maxWidth: '780px', lineHeight: 1.5 }}>
-                    Cruza en tiempo real los 3 centros de predicción meteorológica más respetados del mundo. Cuanto mayor sea el acuerdo entre modelos, mayor es la seguridad operativa para planificar labores, comprar insumos o sembrar.
-                  </p>
-                </div>
-
-                {/* Model tags */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                  <div className="model-source-chip" title="European Centre for Medium-Range Weather Forecasts (0.25°)">
-                    <span>🇪🇺</span> <strong>ECMWF IFS</strong>
-                  </div>
-                  <div className="model-source-chip" title="National Oceanic and Atmospheric Administration (NOAA)">
-                    <span>🇺🇸</span> <strong>GFS Seamless</strong>
-                  </div>
-                  <div className="model-source-chip" title="Deutscher Wetterdienst (DWD Alemania)">
-                    <span>🇩🇪</span> <strong>ICON Global</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Grid of days with multi-model comparison */}
-            {ensembleLoading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
-                <RefreshCw size={16} className="animate-spin" style={{ color: 'var(--blue)' }} /> Sincronizando modelos globales para {selectedCity.name}...
-              </div>
-            ) : ensembleData?.days ? (
-              <div className="ensemble-cards-scroll">
-                {ensembleData.days.map((dItem, dIdx) => {
-                  const dayName = getDayName(dItem.dateStr, dIdx);
-                  const dateShort = formatDateShort(dItem.dateStr);
-                  const isToday = dIdx === 0;
-
-                  const isHighAgreement = dItem.consensusStatus === 'agreement';
-                  const isModerate = dItem.consensusStatus === 'moderate';
-                  const badgeColor = isHighAgreement ? 'var(--green)' : isModerate ? 'var(--yellow)' : 'var(--red)';
-                  const badgeBg = isHighAgreement ? 'rgba(34, 197, 94, 0.12)' : isModerate ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)';
-                  const badgeBorder = isHighAgreement ? 'rgba(34, 197, 94, 0.3)' : isModerate ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)';
-
-                  return (
-                    <div 
-                      key={dIdx} 
-                      className={`ensemble-day-card ${isToday ? 'today-highlight' : ''}`}
-                    >
-                      {/* Day Header */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(148, 163, 184, 0.08)', paddingBottom: '0.4rem' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <span style={{ fontWeight: 900, color: 'var(--text-white)', fontSize: '0.85rem' }}>{dayName}</span>
-                            <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 700 }}>{dateShort}</span>
-                            {isToday && <span className="today-badge" style={{ fontSize: '0.48rem', padding: '0.08rem 0.3rem' }}>HOY</span>}
-                          </div>
-                        </div>
-
-                        {/* Agreement Tag */}
-                        <span style={{
-                          fontSize: '0.52rem',
-                          fontWeight: 800,
-                          padding: '0.15rem 0.4rem',
-                          borderRadius: '6px',
-                          background: badgeBg,
-                          color: badgeColor,
-                          border: `1px solid ${badgeBorder}`,
-                          letterSpacing: '0.02em',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {dItem.reliabilityScore}% Fiabilidad
-                        </span>
-                      </div>
-
-                      {/* Reliability progress bar */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.52rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.1rem' }}>
-                          <span>Certeza Predictiva</span>
-                          <span style={{ color: badgeColor }}>{dItem.reliabilityLevel}</span>
-                        </div>
-                        <div className="reliability-meter-bg">
-                          <div 
-                            className="reliability-meter-fill" 
-                            style={{ 
-                              width: `${dItem.reliabilityScore}%`,
-                              background: isHighAgreement ? 'linear-gradient(90deg, #10b981, #22c55e)' : isModerate ? 'linear-gradient(90deg, #f59e0b, #eab308)' : 'linear-gradient(90deg, #ef4444, #f97316)'
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Side by side Model Comparison Rows */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.1rem' }}>
-                        {/* ECMWF */}
-                        <div className="ensemble-model-row" title="Modelo Europeo IFS (Centro ECMWF)">
-                          <span className="ensemble-model-badge">
-                            <span className="model-flag">🇪🇺</span> ECMWF
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-mono)' }}>
-                            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{Math.round(dItem.models.ecmwf.tempMax)}°</span>
-                            <span style={{ 
-                              color: dItem.models.ecmwf.rain > 0 ? 'var(--blue)' : 'var(--text-muted)',
-                              fontWeight: dItem.models.ecmwf.rain > 0 ? 800 : 500
-                            }}>
-                              {dItem.models.ecmwf.rain > 0 ? `${dItem.models.ecmwf.rain} mm` : '0 mm'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* GFS */}
-                        <div className="ensemble-model-row" title="Modelo Norteamericano GFS (NOAA)">
-                          <span className="ensemble-model-badge">
-                            <span className="model-flag">🇺🇸</span> GFS
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-mono)' }}>
-                            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{Math.round(dItem.models.gfs.tempMax)}°</span>
-                            <span style={{ 
-                              color: dItem.models.gfs.rain > 0 ? 'var(--blue)' : 'var(--text-muted)',
-                              fontWeight: dItem.models.gfs.rain > 0 ? 800 : 500
-                            }}>
-                              {dItem.models.gfs.rain > 0 ? `${dItem.models.gfs.rain} mm` : '0 mm'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* ICON */}
-                        <div className="ensemble-model-row" title="Modelo Alemán ICON (Servicio DWD)">
-                          <span className="ensemble-model-badge">
-                            <span className="model-flag">🇩🇪</span> ICON
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-mono)' }}>
-                            <span style={{ color: 'var(--text-white)', fontWeight: 700 }}>{Math.round(dItem.models.icon.tempMax)}°</span>
-                            <span style={{ 
-                              color: dItem.models.icon.rain > 0 ? 'var(--blue)' : 'var(--text-muted)',
-                              fontWeight: dItem.models.icon.rain > 0 ? 800 : 500
-                            }}>
-                              {dItem.models.icon.rain > 0 ? `${dItem.models.icon.rain} mm` : '0 mm'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Agronomic Conclusion Message */}
-                      <div style={{
-                        marginTop: 'auto',
-                        padding: '0.35rem 0.45rem',
-                        borderRadius: '6px',
-                        background: 'rgba(15, 23, 42, 0.6)',
-                        border: '1px solid rgba(148, 163, 184, 0.08)',
-                        fontSize: '0.56rem',
-                        color: 'var(--text-secondary)',
-                        lineHeight: 1.35
-                      }}>
-                        <strong style={{ color: 'var(--text-primary)' }}>Dictamen: </strong>
-                        {dItem.message}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                Datos multi-modelo no disponibles para esta localidad.
-              </div>
-            )}
           </div>
 
           {/* ═══ 5. CALCULADORA RÁPIDA DE PULVERIZACIÓN Y CALDO ═══ */}

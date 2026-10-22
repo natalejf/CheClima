@@ -59,15 +59,15 @@
 }
 
 .light-theme {
-  --bg-deep: #f1f5f9;
+  --bg-deep: #f8fafc;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-solid: #f8fafc;
+  --bg-card-solid: #ffffff;
   --bg-elevated: #f1f5f9;
 
-  --glass-bg: rgba(255, 255, 255, 0.95);
-  --glass-border: rgba(203, 213, 225, 0.7);
-  --glass-border-hover: rgba(148, 163, 184, 0.8);
+  --glass-bg: #ffffff;
+  --glass-border: rgba(226, 232, 240, 0.9);
+  --glass-border-hover: rgba(203, 213, 225, 0.9);
 
   --accent: #16a34a;
   --accent-dim: rgba(22, 163, 74, 0.15);
@@ -75,16 +75,16 @@
   --accent-secondary: #059669;
 
   --green: #16a34a;
-  --green-bg: rgba(22, 163, 74, 0.15);
+  --green-bg: rgba(22, 163, 74, 0.12);
   --green-border: rgba(22, 163, 74, 0.35);
   --yellow: #d97706;
-  --yellow-bg: rgba(217, 119, 6, 0.15);
+  --yellow-bg: rgba(217, 119, 6, 0.12);
   --yellow-border: rgba(217, 119, 6, 0.35);
   --red: #dc2626;
-  --red-bg: rgba(220, 38, 38, 0.15);
+  --red-bg: rgba(220, 38, 38, 0.12);
   --red-border: rgba(220, 38, 38, 0.35);
   --blue: #2563eb;
-  --blue-bg: rgba(37, 99, 235, 0.15);
+  --blue-bg: rgba(37, 99, 235, 0.12);
   --blue-border: rgba(37, 99, 235, 0.35);
 
   --text-white: #0f172a;
@@ -141,9 +141,95 @@
 .light-theme .summary-stat-box,
 .light-theme .bpa-checklist li,
 .light-theme .insight-card,
-.light-theme .app-footer {
+.light-theme .app-footer,
+.light-theme .sub-selector-container,
+.light-theme .voice-transcript-bubble,
+.light-theme .labor-filter-label,
+.light-theme .voice-progress-badge,
+.light-theme .dictamen-box,
+.light-theme .header-location-pill,
+.light-theme .voice-control-btn.pause-resume-btn {
   background: #f8fafc !important;
   border-color: rgba(226, 232, 240, 0.9) !important;
+  color: #1e293b !important;
+}
+
+.light-theme .sub-selector-btn,
+.light-theme .labor-tab-btn,
+.light-theme .planner-filter-btn,
+.light-theme .planner-ensemble-btn,
+.light-theme .city-chip-btn {
+  background: #ffffff !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+  color: #334155 !important;
+}
+
+.light-theme .sub-selector-btn:hover,
+.light-theme .labor-tab-btn:hover,
+.light-theme .planner-filter-btn:hover,
+.light-theme .city-chip-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: var(--green) !important;
+  color: var(--green) !important;
+}
+
+.light-theme .sub-selector-btn.active-product {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: var(--green) !important;
+  color: #15803d !important;
+}
+
+.light-theme .sub-selector-btn.active-method {
+  background: rgba(37, 99, 235, 0.15) !important;
+  border-color: var(--blue) !important;
+  color: #1d4ed8 !important;
+}
+
+.light-theme .labor-tab-btn.active.labor-status-green {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: #16a34a !important;
+  color: #14532d !important;
+}
+
+.light-theme .labor-tab-btn.active.labor-status-yellow {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: #d97706 !important;
+  color: #78350f !important;
+}
+
+.light-theme .labor-tab-btn.active.labor-status-red {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #dc2626 !important;
+  color: #7f1d1d !important;
+}
+
+.light-theme .planner-filter-btn.active {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: #16a34a !important;
+  color: #15803d !important;
+}
+
+.light-theme .planner-ensemble-btn.active {
+  background: rgba(37, 99, 235, 0.15) !important;
+  border-color: #2563eb !important;
+  color: #1d4ed8 !important;
+}
+
+.light-theme .voice-report-btn {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.12) 0%, rgba(5, 150, 105, 0.08) 100%) !important;
+  border-color: rgba(22, 163, 74, 0.35) !important;
+  color: #15803d !important;
+}
+
+.light-theme .voice-btn-pill {
+  background: rgba(22, 163, 74, 0.15) !important;
+  color: #15803d !important;
+}
+
+.light-theme .whatsapp-report-btn {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  color: #15803d !important;
 }
 
 .light-theme .today-active-card {

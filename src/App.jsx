@@ -7,7 +7,8 @@ import {
   Compass, CloudSun, BarChart3, CheckSquare, Info, Sparkles,
   Activity, Zap, Eye, Radio, Filter, Target, Crosshair,
   Layers, CloudDrizzle, ChevronRight, Calculator, Check, ArrowRight,
-  HelpCircle, Compass as CompassIcon, History, Globe, Cpu, GitCompare, RefreshCw
+  HelpCircle, Compass as CompassIcon, History, Globe, Cpu, GitCompare, RefreshCw,
+  Volume2, VolumeX, Pause, Square, Headphones
 } from 'lucide-react';
 import { 
   fetchWeather, fetchMultiModelEnsemble, searchCities, POPULAR_CITIES, DEFAULT_CITY,
@@ -22,6 +23,7 @@ import {
   evaluateHarvestConditions, evaluateRainfastness,
   SPRAY_PROFILES, SPRAY_METHODS
 } from './utils/rules';
+import { buildAudioReportText, CheClimaSpeechController } from './utils/speech';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -43,6 +45,17 @@ function App() {
   const [sprayProfile, setSprayProfile] = useState('herbicida'); // 'herbicida' | 'fungicida' | 'insecticida' | 'foliar'
   const [sprayMethod, setSprayMethod] = useState('terrestre');   // 'terrestre' | 'aereo'
   const [copiedShare, setCopiedShare] = useState(false);
+
+  // Audio Speech Synthesis state (Accesibilidad para personas no videntes)
+  const [speechState, setSpeechState] = useState({
+    isPlaying: false,
+    isPaused: false,
+    currentIndex: 0,
+    totalChunks: 0,
+    currentText: '',
+    progress: 0
+  });
+  const speechControllerRef = useRef(null);
 
   // Interactive Calibrator / Calculator state for spraying
   const [calcTankVolume, setCalcTankVolume] = useState(3000); // Litros tanque
@@ -111,7 +124,30 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Initialize speech synthesis controller for accessibility / visually impaired support
+  useEffect(() => {
+    speechControllerRef.current = new CheClimaSpeechController((state) => {
+      setSpeechState(state);
+    });
+
+    return () => {
+      if (speechControllerRef.current) {
+        speechControllerRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Automatically cancel oral speech when city changes so it doesn't read old data
+  useEffect(() => {
+    if (speechControllerRef.current && speechControllerRef.current.isPlaying) {
+      speechControllerRef.current.stop();
+    }
+  }, [selectedCity]);
+
   const handleSelectCity = (city) => {
+    if (speechControllerRef.current?.isPlaying) {
+      speechControllerRef.current.stop();
+    }
     setSelectedCity(city);
     setSearchQuery('');
     setShowDropdown(false);
@@ -207,6 +243,49 @@ function App() {
   // Calculator outputs
   const calcHectaresPerTank = calcTargetRate > 0 ? (calcTankVolume / calcTargetRate).toFixed(1) : 0;
   const calcTotalProductPerTank = calcTargetRate > 0 ? ((calcTankVolume / calcTargetRate) * calcDosePerHa).toFixed(1) : 0;
+
+  // Trigger speech report for blind / visually impaired users and hands-free field operators
+  const handleToggleVoiceReport = () => {
+    if (!speechControllerRef.current) return;
+    if (speechState.isPlaying) {
+      speechControllerRef.current.stop();
+      return;
+    }
+    if (!weatherData || !current) return;
+
+    const reportChunks = buildAudioReportText({
+      city: selectedCity,
+      current,
+      daily,
+      todayAnalysis,
+      weeklyAnalysis,
+      ensembleData,
+      deltaT,
+      soilTraffic,
+      thermalInversion,
+      frostRisk,
+      nozzleRec,
+      dewRisk,
+      harvestDiag,
+      rainfastDiag,
+      sprayProfile,
+      sprayMethod,
+      SPRAY_PROFILES,
+      SPRAY_METHODS,
+      formattedDate: getFormattedTodayDate()
+    });
+
+    speechControllerRef.current.start(reportChunks);
+  };
+
+  const handlePauseResumeVoice = () => {
+    if (!speechControllerRef.current) return;
+    if (speechState.isPaused) {
+      speechControllerRef.current.resume();
+    } else {
+      speechControllerRef.current.pause();
+    }
+  };
 
   return (
     <div className="app-container" style={{ minHeight: '100vh', margin: '0 auto' }}>
@@ -348,24 +427,107 @@ function App() {
                 </div>
 
                 {/* Location Pill */}
-                <div style={{ 
-                  marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                  fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)'
-                }}>
-                  <MapPin size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                  <span>{selectedCity.name}</span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
-                  </span>
-                  <span style={{ 
-                    width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', 
-                    boxShadow: '0 0 6px rgba(34,197,94,0.5)', display: 'inline-block'
-                  }} />
-                  <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
-                    EN VIVO · OPEN-METEO
-                  </span>
+                {/* Location Pill & Botón Escuchar Reporte (Accesibilidad p/ no videntes) */}
+                <div className="header-action-row">
+                  <div className="header-location-pill">
+                    <MapPin size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                    <span>{selectedCity.name}</span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                      {[selectedCity.admin1, selectedCity.country].filter(Boolean).join(', ')}
+                    </span>
+                    <span className="live-dot" />
+                    <span className="live-tag">
+                      EN VIVO · OPEN-METEO
+                    </span>
+                  </div>
+
+                  {/* Botón Escuchar Reporte */}
+                  <button
+                    onClick={handleToggleVoiceReport}
+                    className={`voice-report-btn ${speechState.isPlaying ? 'active' : ''}`}
+                    aria-label={speechState.isPlaying ? "Detener reporte oral" : `Escuchar reporte completo de voz de ${selectedCity.name} para personas no videntes`}
+                    title={speechState.isPlaying ? "Detener reporte oral" : `Escuchar reporte meteorológico y agronómico de ${selectedCity.name}`}
+                  >
+                    {speechState.isPlaying ? (
+                      <>
+                        <VolumeX size={16} className="voice-icon-pulse" />
+                        <span>Detener reporte</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={16} />
+                        <span>Escuchar reporte</span>
+                        <span className="voice-btn-pill">Voz Accesible</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </header>
+
+              {/* ═══ REPRODUCTOR ACCESIBLE DE VOZ (CUANDO ESTÁ REPRODUCIENDO) ═══ */}
+              {speechState.isPlaying && (
+                <div 
+                  className="glass-panel voice-report-player-card" 
+                  role="region" 
+                  aria-label="Reproductor de audio del pronóstico para personas no videntes"
+                  aria-live="polite"
+                >
+                  <div className="voice-player-top">
+                    <div className="voice-player-info">
+                      <div className="voice-equalizer-bars" aria-hidden="true">
+                        <span className={`eq-bar eq-bar-1 ${speechState.isPaused ? 'paused' : ''}`} />
+                        <span className={`eq-bar eq-bar-2 ${speechState.isPaused ? 'paused' : ''}`} />
+                        <span className={`eq-bar eq-bar-3 ${speechState.isPaused ? 'paused' : ''}`} />
+                        <span className={`eq-bar eq-bar-4 ${speechState.isPaused ? 'paused' : ''}`} />
+                      </div>
+                      <div>
+                        <div className="voice-player-title">
+                          <span>Reporte Oral para <strong>{selectedCity.name}</strong></span>
+                          <span className="voice-progress-badge">
+                            {speechState.currentIndex + 1} / {speechState.totalChunks} ({speechState.progress}%)
+                          </span>
+                        </div>
+                        <p className="voice-player-subtitle">
+                          {speechState.isPaused ? '⏸️ Reproducción en pausa' : '🎙️ Hablando en español: hoy y próximos 7 días'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="voice-player-controls">
+                      <button
+                        onClick={handlePauseResumeVoice}
+                        className="voice-control-btn pause-resume-btn"
+                        aria-label={speechState.isPaused ? "Reanudar audio" : "Pausar audio"}
+                      >
+                        {speechState.isPaused ? <Play size={15} /> : <Pause size={15} />}
+                        <span>{speechState.isPaused ? 'Reanudar' : 'Pausar'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => speechControllerRef.current?.stop()}
+                        className="voice-control-btn stop-btn"
+                        aria-label="Detener audio y cancelar reporte"
+                      >
+                        <Square size={13} />
+                        <span>Detener</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Subtítulo dinámico en tiempo real */}
+                  <div className="voice-transcript-bubble">
+                    <span className="voice-transcript-icon" aria-hidden="true">🔊</span>
+                    <p className="voice-transcript-text">
+                      {speechState.currentText || 'Iniciando reporte...'}
+                    </p>
+                  </div>
+
+                  {/* Barra de progreso accesible */}
+                  <div className="voice-progress-track" role="progressbar" aria-valuenow={speechState.progress} aria-valuemin="0" aria-valuemax="100">
+                    <div className="voice-progress-fill" style={{ width: `${speechState.progress}%` }} />
+                  </div>
+                </div>
+              )}
 
               {/* ═══ HERO: PANORAMA INMEDIATO DE DECISIÓN Y SEMÁFORO ═══ */}
               <div className="glass-panel hero-panorama-card">
@@ -383,127 +545,81 @@ function App() {
                       </h2>
                     </div>
 
-                    {/* Labor Tabs for Panorama */}
-                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span style={{ 
-                        fontSize: '0.6rem', 
-                        fontWeight: 700, 
-                        color: 'var(--text-secondary)', 
-                        background: 'var(--bg-elevated)', 
-                        padding: '0.2rem 0.5rem', 
-                        borderRadius: '6px', 
-                        border: '1px solid rgba(148,163,184,0.15)', 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '0.25rem',
-                        flexShrink: 0 
-                      }}>
+                    {/* Labor Tabs for Panorama Emparejados */}
+                    <div className="labor-filter-container">
+                      <span className="labor-filter-label">
                         <Filter size={11} style={{ color: 'var(--accent)' }} /> Labor activa:
                       </span>
-                      {[
-                        { id: 'fumigar', label: 'Fumigación', icon: Wind, eval: currentFumigarEval },
-                        { id: 'pulverizar', label: 'Pulverización', icon: Crosshair, eval: currentPulverizarEval },
-                        { id: 'cosechar', label: 'Cosecha', icon: Calendar, eval: currentHarvestEval }
-                      ].map((task) => {
-                        const TaskIcon = task.icon;
-                        const isActive = heroTask === task.id;
-                        const status = task.eval?.status || 'yellow';
-                        return (
-                          <button
-                            key={task.id}
-                            onClick={() => setHeroTask(task.id)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              padding: '0.3rem 0.6rem',
-                              borderRadius: '8px',
-                              fontSize: '0.68rem',
-                              fontWeight: 800,
-                              border: isActive ? `1.5px solid var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` : '1px solid rgba(148,163,184,0.15)',
-                              background: isActive ? `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'}-bg)` : 'var(--bg-card-solid)',
-                              color: 'var(--text-white)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            <TaskIcon size={12} style={{ color: `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` }} />
-                            {task.label}: {status === 'green' ? '🟢 APTO' : status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO'}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Sub-selector: Perfil de Producto y Método de Aplicación (Inspirado en Viejo Viento) */}
-                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && (
-                    <div style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.6rem',
-                      padding: '0.55rem 0.75rem',
-                      borderRadius: '8px',
-                      background: 'transparent',
-                      border: '1px solid rgba(148, 163, 184, 0.08)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.58rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-                          🎯 Producto:
-                        </span>
-                        {Object.values(SPRAY_PROFILES).map((prof) => {
-                          const isSel = sprayProfile === prof.id;
+                      <div className="labor-filter-buttons-grid">
+                        {[
+                          { id: 'fumigar', label: 'Fumigación', icon: Wind, eval: currentFumigarEval },
+                          { id: 'pulverizar', label: 'Pulverización', icon: Crosshair, eval: currentPulverizarEval },
+                          { id: 'cosechar', label: 'Cosecha', icon: Calendar, eval: currentHarvestEval }
+                        ].map((task) => {
+                          const TaskIcon = task.icon;
+                          const isActive = heroTask === task.id;
+                          const status = task.eval?.status || 'yellow';
+                          const statusText = status === 'green' ? '🟢 APTO' : status === 'yellow' ? '🟡 PRECAUCIÓN' : '🔴 NO APTO';
                           return (
                             <button
-                              key={prof.id}
-                              onClick={() => setSprayProfile(prof.id)}
-                              style={{
-                                padding: '0.2rem 0.55rem',
-                                borderRadius: '6px',
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                border: isSel ? '1px solid var(--green)' : '1px solid rgba(148,163,184,0.12)',
-                                background: isSel ? 'var(--green-bg)' : 'transparent',
-                                color: isSel ? 'var(--green)' : 'var(--text-secondary)',
-                                transition: 'all 0.15s ease'
-                              }}
-                              title={prof.desc}
+                              key={task.id}
+                              onClick={() => setHeroTask(task.id)}
+                              className={`labor-tab-btn ${isActive ? `active labor-status-${status}` : ''}`}
+                              aria-pressed={isActive}
                             >
-                              {prof.name.split(' (')[0]}
+                              <TaskIcon size={12} className="labor-tab-icon" style={{ color: `var(--${status === 'green' ? 'green' : status === 'yellow' ? 'yellow' : 'red'})` }} />
+                              <span className="labor-tab-name">{task.label}:</span>
+                              <span className="labor-tab-status">{statusText}</span>
                             </button>
                           );
                         })}
                       </div>
+                    </div>
+                  </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span style={{ fontSize: '0.58rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                  {/* Sub-selector: Perfil de Producto y Método de Aplicación (Emparejado Responsive) */}
+                  {(heroTask === 'fumigar' || heroTask === 'pulverizar') && (
+                    <div className="sub-selector-container">
+                      <div className="sub-selector-group">
+                        <span className="sub-selector-label">
+                          🎯 Producto:
+                        </span>
+                        <div className="sub-selector-buttons-row">
+                          {Object.values(SPRAY_PROFILES).map((prof) => {
+                            const isSel = sprayProfile === prof.id;
+                            return (
+                              <button
+                                key={prof.id}
+                                onClick={() => setSprayProfile(prof.id)}
+                                className={`sub-selector-btn ${isSel ? 'active-product' : ''}`}
+                                title={prof.desc}
+                              >
+                                {prof.name.split(' (')[0]}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="sub-selector-group">
+                        <span className="sub-selector-label">
                           🚜 Método:
                         </span>
-                        {Object.values(SPRAY_METHODS).map((m) => {
-                          const isSel = sprayMethod === m.id;
-                          return (
-                            <button
-                              key={m.id}
-                              onClick={() => setSprayMethod(m.id)}
-                              style={{
-                                padding: '0.2rem 0.55rem',
-                                borderRadius: '6px',
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                border: isSel ? '1px solid var(--blue)' : '1px solid rgba(148,163,184,0.12)',
-                                background: isSel ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-                                color: isSel ? 'var(--blue)' : 'var(--text-secondary)',
-                                transition: 'all 0.15s ease'
-                              }}
-                              title={m.desc}
-                            >
-                              {m.id === 'terrestre' ? 'Terrestre' : 'Aérea / Dron'}
-                            </button>
-                          );
-                        })}
+                        <div className="sub-selector-buttons-row">
+                          {Object.values(SPRAY_METHODS).map((m) => {
+                            const isSel = sprayMethod === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => setSprayMethod(m.id)}
+                                className={`sub-selector-btn ${isSel ? 'active-method' : ''}`}
+                                title={m.desc}
+                              >
+                                {m.id === 'terrestre' ? 'Terrestre' : 'Aérea / Dron'}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -639,25 +755,11 @@ function App() {
                             setCopiedShare(true);
                             setTimeout(() => setCopiedShare(false), 2500);
                           }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.4rem 0.75rem',
-                            borderRadius: '8px',
-                            background: copiedShare ? 'var(--green)' : 'rgba(34, 197, 94, 0.2)',
-                            color: copiedShare ? '#06260e' : 'var(--green)',
-                            border: '1px solid rgba(34, 197, 94, 0.4)',
-                            fontSize: '0.66rem',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            whiteSpace: 'nowrap'
-                          }}
+                          className={`whatsapp-report-btn ${copiedShare ? 'copied' : ''}`}
                           title="Copiar reporte formateado para enviar por WhatsApp al aplicador"
                         >
                           {copiedShare ? <Check size={13} /> : <ArrowRight size={13} />}
-                          {copiedShare ? '¡Copiado para WhatsApp!' : 'Copiar reporte p/ WhatsApp'}
+                          <span>{copiedShare ? '¡Copiado para WhatsApp!' : 'Copiar reporte p/ WhatsApp'}</span>
                         </button>
                       </div>
                     )}
@@ -1215,63 +1317,38 @@ function App() {
                 </span>
               </div>
 
-              {/* Task Filters */}
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                {[
-                  { id: 'todos', label: 'Todas las labores', icon: Calendar },
-                  { id: 'fumigar', label: 'Fumigación', icon: Wind },
-                  { id: 'pulverizar', label: 'Pulverización', icon: Crosshair },
-                  { id: 'cosechar', label: 'Cosecha', icon: Calendar }
-                ].map((item) => {
-                  const IconComponent = item.icon;
-                  const isActive = plannerFilter === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setPlannerFilter(item.id)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '99px',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        border: isActive ? '1px solid var(--green)' : '1px solid rgba(148,163,184,0.15)',
-                        background: isActive ? 'var(--green-bg)' : 'var(--bg-elevated)',
-                        color: isActive ? 'var(--green)' : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <IconComponent size={13} style={{ color: isActive ? 'var(--green)' : 'var(--text-muted)' }} />
-                      {item.label}
-                    </button>
-                  );
-                })}
+              {/* Task Filters Emparejados */}
+              <div className="planner-filter-header-bar">
+                <div className="planner-tasks-buttons-grid">
+                  {[
+                    { id: 'todos', label: 'Todas las labores', icon: Calendar },
+                    { id: 'fumigar', label: 'Fumigación', icon: Wind },
+                    { id: 'pulverizar', label: 'Pulverización', icon: Crosshair },
+                    { id: 'cosechar', label: 'Cosecha', icon: Calendar }
+                  ].map((item) => {
+                    const IconComponent = item.icon;
+                    const isActive = plannerFilter === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setPlannerFilter(item.id)}
+                        className={`planner-filter-btn ${isActive ? 'active' : ''}`}
+                      >
+                        <IconComponent size={13} style={{ color: isActive ? 'var(--green)' : 'var(--text-muted)' }} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
                 {/* Toggle Dictamen Multi-Modelo */}
                 <button
                   onClick={() => setShowEnsembleDetails(!showEnsembleDetails)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '99px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    border: showEnsembleDetails ? '1px solid var(--blue)' : '1px solid rgba(148,163,184,0.15)',
-                    background: showEnsembleDetails ? 'var(--blue-bg)' : 'var(--bg-elevated)',
-                    color: showEnsembleDetails ? 'var(--blue)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    marginLeft: 'auto'
-                  }}
+                  className={`planner-ensemble-btn ${showEnsembleDetails ? 'active' : ''}`}
                   title="Ver dictamen detallado de consenso entre ECMWF, GFS e ICON para cada día"
                 >
                   <Cpu size={13} style={{ color: showEnsembleDetails ? 'var(--blue)' : 'var(--text-muted)' }} />
-                  {showEnsembleDetails ? 'Ocultar Dictamen Modelos' : 'Ver Dictamen Modelos'}
+                  <span>{showEnsembleDetails ? 'Ocultar Dictamen Modelos' : 'Ver Dictamen Modelos'}</span>
                 </button>
               </div>
 
